@@ -2,14 +2,11 @@ import json
 import pandas as pd
 pd.set_option('display.max_columns', None)
 
-arbre_path = "../data/bronze/Arbre/les-arbres.NxlKJoRt.csv.part"
-logement_sociaux_path = "../data/bronze/Part_de_logements_sociaux/logements-sociaux-finances-a-paris.csv"
-
-valeur_fonciere_2024_path = "../data/bronze/Prix_m_médian/ValeursFoncieres-2024-75.csv"
-
-proximite_transport_path = "../data/bronze/Proximite_transports/arrets.csv"
-air_quality_path = "../data/bronze/Qualité_air/air_quality.json"
-toilette_path = "../data/bronze/Toilette/sanisettesparis.csv"
+arbre_path = "../data/bronze/les-arbres.NxlKJoRt.csv.part"
+logement_sociaux_path = "../data/bronze/logements-sociaux-finances-a-paris.csv"
+proximite_transport_path = "../data/bronze/arrets.csv"
+air_quality_path = "../data/bronze/air_quality.json"
+toilette_path = "../data/bronze/sanisettesparis.csv"
 
 print('\n\n----------------------------------------------')
 print("Arbre data : \n")
