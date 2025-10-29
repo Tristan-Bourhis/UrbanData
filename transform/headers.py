@@ -49,18 +49,6 @@ toilette = pd.read_csv(
 )
 print(list(toilette.columns))
 
-
-print('\n\n----------------------------------------------')
-print("Valeure foncières data : \n")
-valeur_fonciere_2024 = pd.read_csv(
-    valeur_fonciere_2024_path,
-    sep=';',                
-    encoding='utf-8',        
-    on_bad_lines='skip'     
-)
-print(list(valeur_fonciere_2024.columns))
-
-
 print('\n\n----------------------------------------------')
 print("Air quality data : \n")
 with open(air_quality_path, "r", encoding="utf-8") as f:
