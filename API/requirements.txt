@@ -1,0 +1,8 @@
+flask
+flask-mysqldb
+python-dotenv
+mysql-connector-python
+flask_cors
+Flask-WTF
+Flask-Limiter[redis]
+Faker
