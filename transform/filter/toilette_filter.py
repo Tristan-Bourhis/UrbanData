@@ -1,7 +1,5 @@
 import pandas as pd
 
-pd.set_option('display.max_columns', None)
-
 def trim_arrondissement(s):
     s = str(s)
     s = s[3:]
@@ -23,7 +21,7 @@ def toilette_filter():
     filtered_toilette = filtered_toilette.drop_duplicates(subset=["geo_point_2d"])
     filtered_toilette = filtered_toilette.rename(columns={"ARRONDISSEMENT": "arrondissement"})
 
-    filtered_toilette.to_csv("../../data/silver/sanisettesparis.csv")
+    filtered_toilette.to_csv("../../data/gold/sanisettesparis.csv")
 
 if __name__ == "__main__":
     toilette_filter()
