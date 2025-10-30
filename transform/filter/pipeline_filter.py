@@ -5,6 +5,7 @@ from air_quality_filter import air_quality_filter
 from logement_filter import logement_filter
 from toilette_filter import toilette_filter
 from transport_filter import transport_filter
+from arbres_filter import filter_arbres
 
 config = {
     'user': 'flaskuser',
@@ -58,6 +59,18 @@ def pipeline():
         paths.append({
             "path": "../../data/silver/arrets.csv",
             "table_name": "silver_transport"
+        })
+    except Exception as e:
+        print(e)
+
+    time.sleep(3)
+
+    try:
+        filter_arbres()
+        print("Tree pipeline finished")
+        paths.append({
+            "path": "../../data/silver/arbres_clean.csv",
+            "table_name": "silver_tree"
         })
     except Exception as e:
         print(e)
