@@ -6,6 +6,7 @@ from logement_filter import logement_filter
 from toilette_filter import toilette_filter
 from transport_filter import transport_filter
 from arbres_filter import filter_arbres
+from valeursFoncieres import process_valeurs_foncieres
 
 config = {
     'user': 'flaskuser',
@@ -71,6 +72,18 @@ def pipeline():
         paths.append({
             "path": "../../data/silver/arbres_clean.csv",
             "table_name": "silver_tree"
+        })
+    except Exception as e:
+        print(e)
+
+    time.sleep(3)
+
+    try:
+        process_valeurs_foncieres()
+        print("Land value pipeline finished")
+        paths.append({
+            "path": "../../data/silver/ValeursFoncieres.csv",
+            "table_name": "silver_land_value"
         })
     except Exception as e:
         print(e)
