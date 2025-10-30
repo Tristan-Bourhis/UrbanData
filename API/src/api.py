@@ -34,7 +34,7 @@ def check_api_key():
         return jsonify({"error": "Missing API key"}), 401
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
 
     cursor.execute("SELECT id, username, permissions FROM api_key_user WHERE api_key = %s", (api_key,))
     user = cursor.fetchone()
@@ -46,6 +46,10 @@ def check_api_key():
     
     route_perm_map = {
         '/api/get-token': 'get-token',
+        '/api/get-toilet-by-a': 'get-token',
+        '/api/get-social-housing': 'get-token',
+        '/api/get-number-station': 'get-token',
+        '/api/get-type-ratio-station': 'get-token',
     }
 
     for route_prefix, perm in route_perm_map.items():
