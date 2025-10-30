@@ -54,7 +54,7 @@ VALUES
    SECRET_KEY=random_long_stable_string
    ```
 
-2. **Create a SSL certificate**
+2. **Create a SSL certificate (optionnal)**
 
    ```bash
    cd src
@@ -86,33 +86,11 @@ This will start:
    ! For POST and PUT methods, you have to put a X-CSRFToken and Referer header !
 
    - Test route:
+
      ```bash
      curl -H "X-API-KEY: APIKEY-VIEWER-67890" http://localhost:5000/api/
      ```
-   - Get all users:
-     ```bash
-     curl -H "X-API-KEY: APIKEY-VIEWER-67890" http://localhost:5000/api/users
-     ```
-   - Add a user:
-     `bash
-  curl --location --request POST 'https://127.0.0.1:5000/api/addUser?firstname=Ananda&lastname=Ouistiti&age=35&password=goodpassword&address=41%20avenue%20du%20Paradis&city=Paris&zipcode=95003&bank_id=3' \
---header 'Content-Type: application/json' \
---header 'X-API-KEY: APIKEY-ADMIN-12345' \
---header 'X-CSRFToken: YOUT_TOKEN' \
---header 'Referer: https://127.0.0.1:5000/' \
---header 'Cookie: session=YOUR_SESSION' \
---data ''
-  `
 
-   - Update a user:
-     `bash
- curl --location --request PUT 'https://127.0.0.1:5000/api/updateUser/11?firstname=Ananda&lastname=Ouistiti&age=58&address=2%20rue%20du%20chat&city=Paris&zipcode=95004&bank_id=3' \
- --header 'Content-Type: application/json' \
- --header 'X-API-KEY: APIKEY-ADMIN-12345' \
- --header 'X-CSRFToken: YOUR_TOKEN' \
- --header 'Referer: https://127.0.0.1:5000/' \
- --header 'Cookie: session=YOUT_SESSION'
-`
      ...
 
 6. **Stopping and Cleaning**
