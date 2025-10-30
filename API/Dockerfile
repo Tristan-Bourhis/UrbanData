@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 WORKDIR /app/src
 EXPOSE 5000
-CMD ["python", "api.py"]
+CMD ["sh", "-c", "python api.py & sleep 5 && python user_permissions.py && wait"]
