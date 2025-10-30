@@ -1,0 +1,145 @@
+/* --- Réinitialisation et Base --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100vh;
+    width: 100vw;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden; /* Empêche le défilement global */
+}
+
+/* --- Layout Principal --- */
+.wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.map-container, #map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Couche de base */
+}
+
+/* --- NOUVEAU : Header Flottant (Centré) --- */
+.app-header {
+    position: absolute;
+    top: 10px; /* On le décolle un peu du haut */
+    left: 50%; /* On le place au milieu */
+    transform: translateX(-50%); /* On le centre parfaitement */
+    
+    width: auto; /* La largeur s'adapte au contenu */
+    z-index: 1000; /* Au-dessus de tout */
+    
+    /* Style de bloc */
+    background-color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    border-radius: 8px; /* Coins arrondis */
+    padding: 12px 25px;
+    
+    /* On garde flex pour aligner le titre et les contrôles */
+    display: flex;
+    justify-content: center; /* Centre les éléments à l'intérieur */
+    align-items: center;
+    gap: 25px; /* Espace entre le titre et les contrôles */
+}
+
+.project-title {
+    font-size: 1.4rem;
+    color: #333;
+}
+
+/* --- Contrôles dans le Header --- */
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 25px; /* Espace entre les groupes de contrôle */
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espace entre label et input */
+}
+
+.control-group label {
+    font-weight: 600;
+    color: #555;
+}
+
+.control-group select {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
+
+.control-group input[type="range"] {
+    width: 120px;
+    cursor: pointer;
+}
+
+/* --- NOUVEAU : Fenêtre Flottante Graphique --- */
+.floating-window {
+    position: absolute;
+    z-index: 999;
+    
+    /* Position et taille initiales */
+    top: 80px;  /* Sous le header */
+    left: 20px; /* <-- MODIFIÉ */
+    width: 500px;
+    height: 350px;
+    
+    /* ... Reste du style ... */
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    resize: both;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.window-header {
+    padding: 10px 15px;
+    background-color: #f1f1f1;
+    border-bottom: 1px solid #ddd;
+    
+    /* --- FONCTIONNALITÉ --- */
+    cursor: move; /* Indique qu'on peut déplacer */
+}
+
+.window-header h2 {
+    font-size: 1.1rem;
+    color: #333;
+    margin: 0;
+}
+
+/* Section d'analyse et graphique (doivent s'adapter) */
+.analysis {
+    padding: 15px;
+    flex-grow: 1; /* Prend l'espace restant */
+    display: flex;
+    /* Nécessaire pour que le graphique s'adapte en hauteur */
+    min-height: 0; 
+}
+
+#timeline-chart {
+    width: 100%;
+    height: 100%; /* Prend 100% de son parent (.analysis) */
+    min-height: 200px; /* Hauteur min lors du resize */
+}
+
+#timeline-chart p {
+    color: #6c757d;
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
+}

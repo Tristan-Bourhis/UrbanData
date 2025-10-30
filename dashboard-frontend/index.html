@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URBAN DATA EXPLORER</title>
+    
+    <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="wrapper">
+        
+        <header class="app-header">
+            <h1 class="project-title">URBAN DATA EXPLORER</h1>
+            
+            <section class="controls">
+                <div class="control-group">
+                    <label for="dataset-selector">INDICATEURS :</label>
+                    <select id="dataset-selector">
+                        <option value="prix_m2" selected>Prix/m² médian</option>
+                        <option value="logements_sociaux">Part de logements sociaux</option>
+                        <option value="arbres">Arbres</option>
+                        <option value="toilettes">Toilettes publiques</option>
+                        <option value="qualite_air">Qualité de l’air</option>
+                        <option value="transports">Proximité transports</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="year-slider">DATE :</label>
+                    <input type="range" id="year-slider" min="2022" max="2024" step="1" value="2024">
+                </div>
+            </section>
+        </header>
+        
+        <main class="map-container">
+            <div id="map"></div>
+        </main>
+
+        <div id="graph-window" class="floating-window">
+            <div class="window-header">
+                <h2 id="chart-title">Analyse de la Zone</h2>
+            </div>
+            <section class="analysis">
+                <div id="timeline-chart">
+                    <p>Cliquez sur un arrondissement pour voir son évolution. Cliquez sur un deuxième pour comparer.</p>
+                </div>
+            </section>
+        </div>
+        
+    </div> <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.plot.ly/plotly-basic-latest.min.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>
