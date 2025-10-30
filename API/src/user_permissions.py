@@ -5,8 +5,10 @@ def insert_api_key_users():
     try:
         connection = get_db_connection()
         if connection.is_connected():
-            cursor = connection.cursor()
+            cursor = connection.cursor(dictionary=True, buffered=True)
 
+            cursor.execute("DROP TABLE IF EXISTS api_key_user;")
+            
             create_table_query = """
             CREATE TABLE IF NOT EXISTS api_key_user (
                 id INT NOT NULL AUTO_INCREMENT,
