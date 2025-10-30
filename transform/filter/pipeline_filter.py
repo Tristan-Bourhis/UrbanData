@@ -1,12 +1,12 @@
 import csv
 import mysql.connector
 import time
-from air_quality_filter import air_quality_filter
 from logement_filter import logement_filter
 from toilette_filter import toilette_filter
 from transport_filter import transport_filter
 from arbres_filter import filter_arbres
 from valeursFoncieres import process_valeurs_foncieres
+from number_logement import number_logement_filter
 
 config = {
     'user': 'flaskuser',
@@ -15,20 +15,8 @@ config = {
     'database': 'flaskdb',
 }
 
-
 def pipeline():
     paths = []
-    try:
-        air_quality_filter()
-        print("Air quality pipeline finished")
-        paths.append({
-            "path": "../../data/silver/air_quality.csv",
-            "table_name": "silver_air_quality"
-        })
-    except Exception as e:
-        print(e)
-
-    time.sleep(3)
 
     try:
         logement_filter()
@@ -84,6 +72,18 @@ def pipeline():
         paths.append({
             "path": "../../data/silver/ValeursFoncieres.csv",
             "table_name": "silver_land_value"
+        })
+    except Exception as e:
+        print(e)
+
+    time.sleep(3)
+
+    try:
+        number_logement_filter()
+        print("Housing number pipeline finished")
+        paths.append({
+            "path": "../../data/silver/number_logement.csv",
+            "table_name": "silver_housing_number"
         })
     except Exception as e:
         print(e)
