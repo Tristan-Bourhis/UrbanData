@@ -13,7 +13,7 @@ def transport_agregation():
     """
     Crée les deux tables agrégées pour les indicateurs de transport.
     """
-    print("\nDébut de l'agrégation des transports...")
+    # print("\nDébut de l'agrégation des transports...")
     connection = None # Initialiser la connexion en dehors du try
     try:
         connection = mysql.connector.connect(**config)
@@ -36,7 +36,7 @@ def transport_agregation():
             """
             cursor.execute(drop_query_1)
             cursor.execute(create_query_1)
-            print("-> Table 'gold_nombre_arrets_par_arrondissement' créée avec succès.")
+            # print("-> Table 'gold_nombre_arrets_par_arrondissement' créée avec succès.")
 
             # --- Indicateur 2: Ratio des types de transport par arrondissement ---
             drop_query_2 = "DROP TABLE IF EXISTS gold_ratio_types_transports_par_arrondissement;"
@@ -59,7 +59,7 @@ def transport_agregation():
             """
             cursor.execute(drop_query_2)
             cursor.execute(create_query_2)
-            print("-> Table 'gold_ratio_types_transports_par_arrondissement' créée avec succès.")
+            # print("-> Table 'gold_ratio_types_transports_par_arrondissement' créée avec succès.")
 
             # Valider les deux créations de table
             connection.commit()
@@ -71,9 +71,9 @@ def transport_agregation():
         if connection and connection.is_connected():
             cursor.close()
             connection.close()
-            print("Connexion (transports) fermée.")
+            # print("Connexion (transports) fermée.")
 
 
 if __name__ == "__main__":
     transport_agregation()
-    print("\n--- Pipeline d'agrégation terminé ---")
+    # print("\n--- Pipeline d'agrégation terminé ---")

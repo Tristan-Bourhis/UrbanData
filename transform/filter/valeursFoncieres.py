@@ -2,7 +2,7 @@ import csv
 import os
 import re
 
-def process_valeurs_foncieres(start_year=2021, end_year=2024):
+def process_valeurs_foncieres(start_year=2020, end_year=2025):
     """
     Transforme les fichiers DVF ValeursFoncieres-YYYY.txt :
     - Filtre le département 75
@@ -128,7 +128,7 @@ def process_valeurs_foncieres(start_year=2021, end_year=2024):
 
                     all_rows.append(out_row)
 
-            print(f"[{year}] lignes filtrées : {len(all_rows)}")
+            # print(f"[{year}] lignes filtrées : {len(all_rows)}")
 
         except Exception as e:
             print(f"[{year}] Erreur : {e}")
@@ -142,7 +142,7 @@ def process_valeurs_foncieres(start_year=2021, end_year=2024):
             writer.writerow(output_headers)
             writer.writerows(all_rows)
 
-        print(f"\n✅ Fichier CSV final créé : {output_file}, total lignes : {len(all_rows)}")
+        # print(f"\n✅ Fichier CSV final créé : {output_file}, total lignes : {len(all_rows)}")
     else:
         print("⚠️ Aucune donnée valide à écrire.")
 
