@@ -5,7 +5,7 @@
 ### First install
 
 ```bash
-    bash install.sh
+bash install.sh
 ```
 
 ### 🏁 Results
@@ -15,7 +15,7 @@ This will launch the API and start the filtering and aggregation pipeline.
 ### Reload the project
 
 ```bash
-    bash reload.sh
+bash reload.sh
 ```
 
 ### 🏁 Results
