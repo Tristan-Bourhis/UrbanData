@@ -37,7 +37,7 @@ def process_valeurs_foncieres(start_year=2020, end_year=2025):
 
     # Colonnes à renommer (minuscules et underscores)
     rename_map = {
-        "Date mutation": "date",
+        "Date mutation": "date_mutation",
         "Valeur fonciere": "prix",
         "Arrondissement": "arrondissement",
         "Surface Carrez du 1er lot": "surface_carrez_du_1er_lot",
@@ -142,9 +142,9 @@ def process_valeurs_foncieres(start_year=2020, end_year=2025):
             writer.writerow(output_headers)
             writer.writerows(all_rows)
 
-        # print(f"\n✅ Fichier CSV final créé : {output_file}, total lignes : {len(all_rows)}")
+        # print(f"\nFichier CSV final créé : {output_file}, total lignes : {len(all_rows)}")
     else:
-        print("⚠️ Aucune donnée valide à écrire.")
+        print("Aucune donnée valide à écrire.")
 
 if __name__ == "__main__":
     process_valeurs_foncieres()
