@@ -7,10 +7,10 @@ git reset --hard origin/prod
 cd API
 docker compose up -d --build --remove-orphans
 cd ../transform/filter
-if [ -f requirements.txt ]; then
-    pip3 install -r requirements.txt --break-system-packages
-fi
-python3 pipeline_filter.py
+# if [ -f requirements.txt ]; then
+#     pip3 install -r requirements.txt --break-system-packages
+# fi
+# python3 pipeline_filter.py
 
 echo "➕ Exécution du Pipeline Agregation..."
 cd ../agregation # On suppose que agregation est frère de filter

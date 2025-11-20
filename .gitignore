@@ -5,3 +5,5 @@ data/bronze/foncieres
 node_modules
 # key.pem
 # cert.pem
+github_deploy_key
+github_deploy_key.pub
