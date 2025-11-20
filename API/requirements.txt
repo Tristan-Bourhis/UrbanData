@@ -6,3 +6,5 @@ flask_cors
 Flask-WTF
 Flask-Limiter[redis]
 Faker
+pandas
+openpyxl
