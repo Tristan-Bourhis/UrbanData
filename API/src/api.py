@@ -17,7 +17,8 @@ CORS(app,
      origins=[
          "http://localhost:3443",
          "http://localhost:5000",
-         "http://127.0.0.1:5000"
+         "http://127.0.0.1:5000",
+         "http://141.227.133.132:3443"
      ],
      supports_credentials=True,
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
