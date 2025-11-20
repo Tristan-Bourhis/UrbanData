@@ -1,4 +1,4 @@
-﻿date,prix,arrondissement,surface_carrez_du_1er_lot,surface_carrez_du_2eme_lot,surface_carrez_du_3eme_lot,surface_carrez_du_4eme_lot,surface_carrez_du_5eme_lot,type_local,nombre_pieces_principales
+﻿date_mutation,prix,arrondissement,surface_carrez_du_1er_lot,surface_carrez_du_2eme_lot,surface_carrez_du_3eme_lot,surface_carrez_du_4eme_lot,surface_carrez_du_5eme_lot,type_local,nombre_pieces_principales
 01/07/2020,"148000,00",3,"11,81",,,,,Appartement,1
 01/07/2020,"270000,00",1,"23,05",,,,,Appartement,2
 06/07/2020,"2603550,00",1,"144,04",,,,,Appartement,6
