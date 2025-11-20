@@ -13,7 +13,17 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 app.secret_key = SECRET_KEY
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-CORS(app, supports_credentials=True)
+CORS(app,
+     origins=[
+         "http://localhost:5500",
+         "http://127.0.0.1:5500",
+         "https://localhost:5500",
+         "https://127.0.0.1:5500",
+         "https://localhost:3443"
+     ],
+     supports_credentials=True,
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "X-API-KEY"])
 
 limiter.init_app(app)
 csrf = CSRFProtect(app)
@@ -25,6 +35,9 @@ def page_not_found(e):
 
 @app.before_request
 def check_api_key():
+    if request.method == 'OPTIONS':
+        return
+    
     public_routes = ['/api']
     if request.path in public_routes:
         return
@@ -64,4 +77,5 @@ def check_api_key():
     conn.close()
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("cert.pem", "key.pem"))
+    # app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("cert.pem", "key.pem"))
+    app.run(host="0.0.0.0", port=5000, debug=True)

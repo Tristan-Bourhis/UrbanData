@@ -2,5 +2,6 @@
 __pycache__/
 .env
 data/bronze/foncieres
+node_modules
 # key.pem
 # cert.pem
