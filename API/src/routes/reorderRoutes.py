@@ -6,6 +6,7 @@ from controllers.SocialHousingController import getSocialHousingController
 from controllers.TransportController import getNumberStationByAController
 from controllers.TransportController import getRatioTypeStationByAController
 from controllers.TransportController import getStationsPointsController
+from controllers.TreeController import getTreeController
 from extension import limiter
 
 reorderBlueprint = Blueprint('reorder', __name__)
@@ -39,3 +40,7 @@ def get_type_ratio_station():
 @reorderBlueprint.route('/get-stations-points', methods=['GET'])
 def get_stations_points():
     return getStationsPointsController()
+
+@reorderBlueprint.route('/get-tree', methods=['GET'])
+def get_tree():
+    return getTreeController()

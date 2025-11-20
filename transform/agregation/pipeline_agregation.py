@@ -2,6 +2,7 @@ import time
 from social_housing_agregation import social_housing_agregation
 from toilette_agregation import toilette_agregation
 from transport_agregate import transport_agregation
+from tree_agregation import tree_agregation
 
 config = {
     'user': 'flaskuser',
@@ -30,6 +31,14 @@ def pipeline():
     try:
         transport_agregation()
         print("Transport pipeline finished")
+    except Exception as e:
+        print(e)
+
+    time.sleep(3)
+
+    try:
+        tree_agregation()
+        print("Tree pipeline finished")
     except Exception as e:
         print(e)
 
