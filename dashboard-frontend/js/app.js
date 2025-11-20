@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. CONFIGURATION & SÉLECTEURS
   // ============================================================
 
-  const API_URL = "http://141.227.133.132:5000/api";
+  const API_URL = "/api";
   const API_KEY = "APIKEY-VIEWER-67890";
 
   const datasetSelector = document.getElementById("dataset-selector");

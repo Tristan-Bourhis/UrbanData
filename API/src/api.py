@@ -6,20 +6,23 @@ from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
 from bd import get_db_connection
 from extension import limiter
+from werkzeug.middleware.proxy_fix import ProxyFix 
 
 load_dotenv()
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 SECRET_KEY = os.getenv("SECRET_KEY")
 app.secret_key = SECRET_KEY
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 CORS(app,
      origins=[
-         "http://localhost:3443",
-         "http://localhost:5000",
-         "http://127.0.0.1:5000",
-         "http://141.227.133.132:3443",
-         "http://www.efreiprojeturban.theval.ovh",
+         "http://localhost:3443",             
+         "http://localhost:5000",             
+         "http://127.0.0.1:5000",           
+         "https://efreiprojeturban.theval.ovh",     
+         "https://www.efreiprojeturban.theval.ovh",  
      ],
      supports_credentials=True,
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -27,6 +30,8 @@ CORS(app,
 
 limiter.init_app(app)
 csrf = CSRFProtect(app)
+csrf.exempt(reorderBlueprint)
+
 app.register_blueprint(reorderBlueprint, url_prefix='/api')
 
 @app.errorhandler(404)
@@ -38,7 +43,7 @@ def check_api_key():
     if request.method == 'OPTIONS':
         return
     
-    public_routes = ['/api']
+    public_routes = ['/api', '/api/']
     if request.path in public_routes:
         return
 
