@@ -15,7 +15,7 @@ cd API
 docker compose up -d --build --remove-orphans
 cd ..
 cd transform/filter
-# python3 pipeline_filter.py
+python3 pipeline_filter.py
 
 cd ../agregation 
 python3 pipeline_agregation.py
