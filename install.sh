@@ -4,19 +4,20 @@ set -e
 git fetch origin prod
 git reset --hard origin/prod
 
+if [ -f API/requirements.txt ]; then
+    pip3 install -r API/requirements.txt --break-system-packages
+else
+    echo "❌ ERREUR : Fichier API/requirements.txt introuvable !"
+    exit 1
+fi
+
 cd API
 docker compose up -d --build --remove-orphans
-cd ../transform/filter
-# if [ -f requirements.txt ]; then
-#     pip3 install -r requirements.txt --break-system-packages
-# fi
+cd ..
+cd transform/filter
 # python3 pipeline_filter.py
 
-echo "➕ Exécution du Pipeline Agregation..."
-cd ../agregation # On suppose que agregation est frère de filter
-if [ -f requirements.txt ]; then
-    pip3 install -r requirements.txt --break-system-packages
-fi
+cd ../agregation 
 python3 pipeline_agregation.py
 
 cd ../../dashboard-frontend
