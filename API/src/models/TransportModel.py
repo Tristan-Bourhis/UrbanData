@@ -25,3 +25,15 @@ def getRatioTypeStationByA():
         return myresult
     except Exception as e:
         return jsonify(error=str(e)), 400
+    
+def getStationspoints():
+    try:
+        mydb = get_db_connection()
+        mycursor = mydb.cursor(dictionary=True, buffered=True)
+        mycursor.execute("SELECT type, nom, geo_point_2d FROM silver_transport;")
+        myresult = mycursor.fetchall()
+        mycursor.close()
+        mydb.close()
+        return myresult
+    except Exception as e:
+        return jsonify(error=str(e)), 400

@@ -5,6 +5,7 @@ from controllers.CsrfController import get_csrf_token
 from controllers.SocialHousingController import getSocialHousingController
 from controllers.TransportController import getNumberStationByAController
 from controllers.TransportController import getRatioTypeStationByAController
+from controllers.TransportController import getStationsPointsController
 from extension import limiter
 
 reorderBlueprint = Blueprint('reorder', __name__)
@@ -34,3 +35,7 @@ def get_number_station():
 @reorderBlueprint.route('/get-type-ratio-station', methods=['GET'])
 def get_type_ratio_station():
     return getRatioTypeStationByAController()
+
+@reorderBlueprint.route('/get-stations-points', methods=['GET'])
+def get_stations_points():
+    return getStationsPointsController()
