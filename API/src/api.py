@@ -15,11 +15,9 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 CORS(app,
      origins=[
-         "http://localhost:5500",
-         "http://127.0.0.1:5500",
-         "https://localhost:5500",
-         "https://127.0.0.1:5500",
-         "https://localhost:3443"
+         "http://localhost:3443",
+         "http://localhost:5000",
+         "http://127.0.0.1:5000"
      ],
      supports_credentials=True,
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -65,6 +63,7 @@ def check_api_key():
         '/api/get-type-ratio-station': 'get-token',
         '/api/get-stations-points': 'get-token',
         '/api/get-tree': 'get-token',
+        '/api/get-land-value': 'get-token',
     }
 
     for route_prefix, perm in route_perm_map.items():
@@ -79,4 +78,4 @@ def check_api_key():
     conn.close()
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("cert.pem", "key.pem"))
+    app.run(host="0.0.0.0", port=5000, debug=True)

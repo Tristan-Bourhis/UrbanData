@@ -1,7 +1,7 @@
 from bd import get_db_connection
 from flask import jsonify
 
-def getNumberStationByA():
+def getNumberStationByAModel():
     try:
         mydb = get_db_connection()
         mycursor = mydb.cursor(dictionary=True, buffered=True)
@@ -14,7 +14,7 @@ def getNumberStationByA():
         return jsonify(error=str(e)), 400
     
 
-def getRatioTypeStationByA():
+def getRatioTypeStationByAModel():
     try:
         mydb = get_db_connection()
         mycursor = mydb.cursor(dictionary=True, buffered=True)
@@ -26,7 +26,7 @@ def getRatioTypeStationByA():
     except Exception as e:
         return jsonify(error=str(e)), 400
     
-def getStationspoints():
+def getStationspointsModel():
     try:
         mydb = get_db_connection()
         mycursor = mydb.cursor(dictionary=True, buffered=True)

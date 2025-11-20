@@ -34,7 +34,7 @@ def insert_api_key_users():
                     '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9',
                     'APIKEY-ADMIN-12345',
                     'admin',
-                    '["get-token", "view_users"]',
+                    '["get-token"]',
                     '2025-10-07 16:57:53'
                 ),
                 (
@@ -42,7 +42,7 @@ def insert_api_key_users():
                     'ef5e5a1fb95055e0e56cccf98a41e784a132c14e7f6e1ba244302f0e72b29baf',
                     'APIKEY-EDITOR-55555',
                     'editor',
-                    '["get-token", "view_users"]',
+                    '["get-token"]',
                     '2025-10-07 16:57:53'
                 ),
                 (
@@ -50,7 +50,7 @@ def insert_api_key_users():
                     '65375049b9e4d7cad6c9ba286fdeb9394b28135a3e84136404cfccfdcc438894',
                     'APIKEY-VIEWER-67890',
                     'viewer',
-                    '["get-token", "view_users"]',
+                    '["get-token"]',
                     '2025-10-07 16:57:53'
                 )
             ]

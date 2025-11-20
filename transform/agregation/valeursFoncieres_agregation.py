@@ -14,34 +14,34 @@ def valeursFoncieres_agregation():
         if connection.is_connected():
             cursor = connection.cursor()
 
-            drop_query = "DROP TABLE IF EXISTS gold_land_value;"
+            drop_query = "DROP TABLE IF EXISTS `gold_land_value`;"
             create_query = """
-            CREATE TABLE gold_land_value AS
+            CREATE TABLE `gold_land_value` AS
             SELECT
-                date_mutation,
-                CAST(REPLACE(NULLIF(prix, ''), ',', '.') AS DECIMAL(15,2)) AS prix,
-                arrondissement,
-                type_local,
-                nombre_pieces_principales,
+                STR_TO_DATE(NULLIF(`date_mutation`, ''), '%d/%m/%Y') AS `date_mutation`,
+                CAST(REPLACE(NULLIF(`prix`, ''), ',', '.') AS DECIMAL(15,2)) AS `prix`,
+                `arrondissement`,
+                `type_local`,
+                `nombre_pieces_principales`,
                 (
-                    COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_1er_lot, ''), ',', '.') AS DECIMAL(15,2)), 0) +
-                    COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_2eme_lot, ''), ',', '.') AS DECIMAL(15,2)), 0) +
-                    COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_3eme_lot, ''), ',', '.') AS DECIMAL(15,2)), 0) +
-                    COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_4eme_lot, ''), ',', '.') AS DECIMAL(15,2)), 0) +
-                    COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_5eme_lot, ''), ',', '.') AS DECIMAL(15,2)), 0)
-                ) AS surface_total,
+                    COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_1er_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0) +
+                    COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_2eme_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0) +
+                    COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_3eme_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0) +
+                    COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_4eme_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0) +
+                    COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_5eme_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0)
+                ) AS `surface_total`,
                 (
-                    CAST(REPLACE(NULLIF(prix, ''), ',', '.') AS DECIMAL(15,2)) /
+                    CAST(REPLACE(NULLIF(`prix`, ''), ',', '.') AS DECIMAL(15,2)) /
                     NULLIF(
-                        COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_1er_lot, ''), ',', '.') AS DECIMAL(15,2)), 0) +
-                        COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_2eme_lot, ''), ',', '.') AS DECIMAL(15,2)), 0) +
-                        COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_3eme_lot, ''), ',', '.') AS DECIMAL(15,2)), 0) +
-                        COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_4eme_lot, ''), ',', '.') AS DECIMAL(15,2)), 0) +
-                        COALESCE(CAST(REPLACE(NULLIF(surface_carrez_du_5eme_lot, ''), ',', '.') AS DECIMAL(15,2)), 0),
+                        COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_1er_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0) +
+                        COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_2eme_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0) +
+                        COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_3eme_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0) +
+                        COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_4eme_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0) +
+                        COALESCE(CAST(REPLACE(NULLIF(`surface_carrez_du_5eme_lot`, ''), ',', '.') AS DECIMAL(15,2)), 0),
                         0
                     )
-                ) AS prix_m2
-            FROM silver_land_value;
+                ) AS `prix_m2`
+            FROM `silver_land_value`;
             """
 
             cursor.execute(drop_query)

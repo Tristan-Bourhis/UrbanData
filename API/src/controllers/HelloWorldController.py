@@ -1,10 +1,10 @@
 from flask import jsonify
-from models.HelloWorldModel import HelloWorld
+from models.HelloWorldModel import HelloWorldModel
 from controllers.response_controller import set_response_headers
 
 def HelloWorldRoute():
     try:
-        myresult = HelloWorld()
+        myresult = HelloWorldModel()
         response = jsonify(data=myresult)
         response = set_response_headers(response)
         return response, 200

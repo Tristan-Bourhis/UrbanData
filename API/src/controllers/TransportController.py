@@ -1,12 +1,12 @@
 from flask import jsonify
-from models.TransportModel import getNumberStationByA
-from models.TransportModel import getRatioTypeStationByA
-from models.TransportModel import getStationspoints
+from models.TransportModel import getNumberStationByAModel
+from models.TransportModel import getRatioTypeStationByAModel
+from models.TransportModel import getStationspointsModel
 from controllers.response_controller import set_response_headers
 
 def getNumberStationByAController():
     try:
-        myresult = getNumberStationByA()
+        myresult = getNumberStationByAModel()
         response = jsonify(data=myresult)
         response = set_response_headers(response)
         return response, 200
@@ -15,7 +15,7 @@ def getNumberStationByAController():
     
 def getRatioTypeStationByAController():
     try:
-        myresult = getRatioTypeStationByA()
+        myresult = getRatioTypeStationByAModel()
         response = jsonify(data=myresult)
         response = set_response_headers(response)
         return response, 200
@@ -25,7 +25,7 @@ def getRatioTypeStationByAController():
 
 def getStationsPointsController():
     try:
-        myresult = getStationspoints()
+        myresult = getStationspointsModel()
         response = jsonify(data=myresult)
         response = set_response_headers(response)
         return response, 200

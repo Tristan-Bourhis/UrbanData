@@ -3,6 +3,7 @@ from social_housing_agregation import social_housing_agregation
 from toilette_agregation import toilette_agregation
 from transport_agregate import transport_agregation
 from tree_agregation import tree_agregation
+from valeursFoncieres_agregation import valeursFoncieres_agregation
 
 config = {
     'user': 'flaskuser',
@@ -39,6 +40,14 @@ def pipeline():
     try:
         tree_agregation()
         print("Tree pipeline finished")
+    except Exception as e:
+        print(e)
+
+    time.sleep(3)
+
+    try:
+        valeursFoncieres_agregation()
+        print("Valeurs Foncieres pipeline finished")
     except Exception as e:
         print(e)
 

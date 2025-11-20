@@ -1,7 +1,14 @@
-// js/app.js (VERSION FINALE : Logique V1 "fonctionnelle" + Style V3 + Légende)
+// js/app.js (VERSION CORRIGÉE : Fix du crash MapLibre "null value")
 
 document.addEventListener("DOMContentLoaded", () => {
-  // --- Sélecteurs DOM ---
+  // ============================================================
+  // 1. CONFIGURATION & SÉLECTEURS
+  // ============================================================
+
+  // ATTENTION : Si tu es en local, garde http. Si tu déploies, passe en https.
+  const API_URL = "http://localhost:5000/api";
+  const API_KEY = "APIKEY-VIEWER-67890";
+
   const datasetSelector = document.getElementById("dataset-selector");
   const graphWindow = document.getElementById("graph-window");
   const chartHeader = graphWindow.querySelector(".window-header");
@@ -15,38 +22,49 @@ document.addEventListener("DOMContentLoaded", () => {
     "transport-type-selector"
   );
 
-  // --- NOUVEAU : Sélecteurs Légende ---
   const legendContainer = document.getElementById("map-legend");
   const legendBar = document.querySelector(".legend-bar");
   const legendMin = document.getElementById("legend-min");
   const legendMax = document.getElementById("legend-max");
 
-  // --- Variables Globales ---
-  const API_URL = "http://localhost:5000/api";
-  const API_KEY = "APIKEY-VIEWER-67890";
+  // Variables d'état
   let geojsonData = null;
   const dataCache = new Map();
   let zonesAComparer = new Map();
-  const comparisonColors = ["#007bff", "#d7191c"];
   let hoveredStateId = null;
 
-  // --- Couleurs des KPI ---
+  // Couleurs
+  const comparisonColors = ["#007bff", "#d7191c"];
   const kpiColors = {
-    bus: "#007bff", // Bleu
-    metro: "#8a2be2", // Violet
-    tram: "#20c997", // Vert
-    rail: "#fd7e14", // Orange
+    bus: "#007bff",
+    metro: "#8a2be2",
+    tram: "#20c997",
+    rail: "#fd7e14",
   };
 
-  // --- Initialisation de la carte MapLibre ---
-  const mapStyle =
-    "https://api.maptiler.com/maps/positron/style.json?key=VG6aYxwCVxhTFizznhIL";
+  // ============================================================
+  // 2. UTILITAIRES
+  // ============================================================
+
+  function getShortId(rawId) {
+    if (!rawId) return "0";
+    let s = String(rawId);
+    if (s.startsWith("75")) s = s.substring(3);
+    return String(parseInt(s));
+  }
+
+  // ============================================================
+  // 3. INITIALISATION CARTE
+  // ============================================================
+
   const map = new maplibregl.Map({
     container: "map",
-    style: mapStyle,
+    style:
+      "https://api.maptiler.com/maps/positron/style.json?key=VG6aYxwCVxhTFizznhIL",
     center: [2.3522, 48.8566],
     zoom: 11.2,
   });
+
   map.addControl(new maplibregl.NavigationControl(), "top-right");
   const popup = new maplibregl.Popup({
     closeButton: false,
@@ -54,12 +72,15 @@ document.addEventListener("DOMContentLoaded", () => {
     offset: 15,
   });
 
-  // --- map.on('load') ---
+  // ============================================================
+  // 4. CHARGEMENT DONNÉES (Logique Cœur)
+  // ============================================================
+
   map.on("load", async () => {
     try {
+      // 1. GeoJSON
       const response = await fetch("data/arrondissements.geojson");
-      if (!response.ok)
-        throw new Error("Fichier arrondissements.geojson non trouvé.");
+      if (!response.ok) throw new Error("GeoJSON introuvable");
       geojsonData = await response.json();
 
       map.addSource("arrondissements-data", {
@@ -68,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
         promoteId: "c_arinsee",
       });
 
-      // Ajouter les couches de la carte
+      // 2. Layers
       map.addLayer({
         id: "arrondissements-remplissage",
         type: "fill",
@@ -96,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
             comparisonColors[0],
             ["==", ["feature-state", "selected_state"], 2],
             comparisonColors[1],
-            "#000000",
+            "#444",
           ],
           "line-width": [
             "case",
@@ -114,236 +135,187 @@ document.addEventListener("DOMContentLoaded", () => {
         source: "arrondissements-data",
         layout: {
           "text-field": ["get", "l_ar"],
-          "text-size": 13,
+          "text-size": 12,
           "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-          "text-allow-overlap": false,
-          "symbol-placement": "point",
         },
         paint: {
-          "text-color": "#333333",
-          "text-halo-color": "rgba(255, 255, 255, 0.8)",
-          "text-halo-width": 1.5,
-          "text-halo-blur": 0.5,
+          "text-color": "#333",
+          "text-halo-color": "white",
+          "text-halo-width": 2,
         },
       });
 
+      // 3. API Data
       await cacheAllAPIData();
-      // Force l'affichage initial si une option est sélectionnée
+
+      // 4. Init Premier Affichage
       if (datasetSelector.value !== "none") {
-        await loadAndDisplayData(datasetSelector.value);
+        loadAndDisplayData(datasetSelector.value);
       }
     } catch (error) {
-      console.error("Erreur critique lors du chargement initial:", error);
-      alert(`Erreur critique: ${error.message}.`);
+      console.error("Erreur:", error);
+      alert(`Erreur chargement: ${error.message}`);
     }
   });
 
-  // --- Gestionnaire de Données (Data Handler) ---
-
   async function cacheAllAPIData() {
-    console.log("Mise en cache des données de l'API...");
-    const fetchOptions = { headers: { "X-API-KEY": API_KEY } };
+    const opts = { headers: { "X-API-KEY": API_KEY } };
 
-    try {
-      const [
-        arretsResponse,
-        toilettesResponse,
-        logementsResponse,
-        ratioTransportsResponse,
-      ] = await Promise.all([
-        fetch(`${API_URL}/get-number-station`, fetchOptions),
-        fetch(`${API_URL}/get-toilet-by-a`, fetchOptions),
-        fetch(`${API_URL}/get-social-housing`, fetchOptions),
-        fetch(`${API_URL}/get-type-ratio-station`, fetchOptions),
-      ]);
+    // Helper pour fetch sécurisé
+    const safeFetch = async (url) => {
+      try {
+        const r = await fetch(url, opts);
+        return await r.json();
+      } catch (e) {
+        console.error(url, e);
+        return { data: [] };
+      }
+    };
 
-      dataCache.set(
-        "arrets_count_total",
-        await normalizeData(
-          arretsResponse,
-          "arrondissement",
-          "nombre_total_arrets",
-          "arrêts"
-        )
-      );
-      dataCache.set(
-        "toilettes_count",
-        await normalizeData(
-          toilettesResponse,
-          "arrondissement",
-          "nombre",
-          "toilettes"
-        )
-      );
+    console.log("Chargement des données API...");
 
-      // --- CORRECTION : Logements Sociaux (Calcul Manuel) ---
-      const logementsResponseData = await logementsResponse.json();
-      const logementsData = Array.isArray(logementsResponseData)
-        ? logementsResponseData
-        : logementsResponseData.data;
+    // --- A. ARRÊTS & TOILETTES ---
+    const resArr = await safeFetch(`${API_URL}/get-number-station`);
+    dataCache.set(
+      "arrets_count_total",
+      await normalizeData(
+        resArr,
+        "arrondissement",
+        "nombre_total_arrets",
+        "arrêts"
+      )
+    );
 
-      // On crée un nouveau tableau propre avec le ratio calculé
-      const cleanedHousingData = logementsData.map((item) => {
-        const soc = parseInt(item.nombre_logements_sociaux) || 0;
-        const tot = parseInt(item.nombre_total_logements) || 0;
-        const ratioCalc = tot > 0 ? (soc / tot) * 100 : 0;
-        return {
-          ...item,
-          arrondissement: item.arrondissement,
-          nombre_logements_sociaux: soc,
-          nombre_total_logements: tot,
-          ratio_logements_sociaux_pourcent: ratioCalc, // On force notre valeur
-        };
-      });
-      dataCache.set("logements_sociaux_raw", cleanedHousingData);
-      // ------------------------------------------------------
+    const resToil = await safeFetch(`${API_URL}/get-toilet-by-a`);
+    dataCache.set(
+      "toilettes_count",
+      await normalizeData(resToil, "arrondissement", "nombre", "toilettes")
+    );
 
-      const ratioResponseData = await ratioTransportsResponse.json();
-      const ratioData = Array.isArray(ratioResponseData)
-        ? ratioResponseData
-        : ratioResponseData.data;
-      dataCache.set("transports_ratio_raw", ratioData);
+    // --- B. LOGEMENTS SOCIAUX ---
+    const resLog = await safeFetch(`${API_URL}/get-social-housing`);
+    const logData = Array.isArray(resLog) ? resLog : resLog.data || [];
 
-      const transportTypes = ["bus", "metro", "tram", "rail"];
+    console.log("DEBUG DATA LOGEMENTS:", logData[0]); // Pour vérifier
 
-      transportTypes.forEach((type) => {
-        const typeData = ratioData.filter(
-          (item) => item.type.toLowerCase() === type
-        );
-        const typeMap = new Map();
-        typeData.forEach((item) => {
-          typeMap.set(String(item.arrondissement), {
-            value: item.nombre_arrets_par_type,
-            display_name: `${item.nombre_arrets_par_type} ${
-              type === "metro" ? "métro" : type
-            }`,
-          });
-        });
-        dataCache.set(`arrets_count_${type}`, typeMap);
-      });
+    const logMap = new Map();
+    logData.forEach((d) => {
+      const id = getShortId(d.arrondissement);
+      const soc = parseInt(d.nombre_logements_sociaux) || 0;
+      const tot = parseInt(d.nombre_total_logements) || 0;
 
-      console.log("Données API mises en cache:", dataCache);
-    } catch (error) {
-      console.error("Échec du fetch API:", error);
-      // Ne pas faire d'alert ici pour éviter le spam si 429
-    }
-  }
+      // On priorise la valeur de l'API si elle existe (8.74), sinon on calcule
+      let ratio = parseFloat(d.ratio_logements_sociaux_pourcent);
+      if (isNaN(ratio)) {
+        ratio = tot > 0 ? (soc / tot) * 100 : 0;
+      }
 
-  async function normalizeData(response, idCol, valueCol, suffix) {
-    const responseData = await response.json();
-    const apiData = Array.isArray(responseData)
-      ? responseData
-      : responseData.data;
-    const dataMap = new Map();
-    apiData.forEach((item) => {
-      const value = parseFloat(item[valueCol]);
-      const validValue = isNaN(value) ? 0 : value;
-      dataMap.set(String(item[idCol]), {
-        value: validValue,
-        display_name: `${validValue.toFixed(suffix === "%" ? 1 : 0)} ${suffix}`,
+      logMap.set(id, {
+        value: ratio,
+        display_name: `${ratio.toFixed(1)} %`,
+        nombre_sociaux: soc,
+        nombre_total: tot,
       });
     });
-    return dataMap;
+    dataCache.set("logements_map", logMap);
+
+    // --- C. TRANSPORTS DÉTAIL ---
+    const resRatio = await safeFetch(`${API_URL}/get-type-ratio-station`);
+    const ratioData = Array.isArray(resRatio) ? resRatio : resRatio.data || [];
+
+    // IMPORTANT : On stocke avec la clé EXACTE utilisée plus tard
+    dataCache.set("transports_ratio_raw", ratioData);
+
+    ["bus", "metro", "tram", "rail"].forEach((t) => {
+      const tMap = new Map();
+      ratioData
+        .filter((r) => r.type.toLowerCase() === t)
+        .forEach((r) => {
+          tMap.set(getShortId(r.arrondissement), {
+            value: r.nombre_arrets_par_type,
+            display_name: `${r.nombre_arrets_par_type} ${t}`,
+          });
+        });
+      dataCache.set(`arrets_${t}`, tMap);
+    });
+
+    console.log("Données chargées et mises en cache.");
   }
 
-  function loadAndDisplayData(datasetKey, subType = "total") {
-    let dataMap;
-
-    if (datasetKey === "arrets_count") {
-      const key =
-        subType === "total" ? "arrets_count_total" : `arrets_count_${subType}`;
-      dataMap = dataCache.get(key);
-    } else if (datasetKey === "logements_sociaux_ratio") {
-      const rawData = dataCache.get("logements_sociaux_raw");
-      if (!rawData) {
-        console.error("Données brutes de logements sociaux non trouvées.");
-        return;
-      }
-      dataMap = new Map();
-      rawData.forEach((item) => {
-        const ratio = parseFloat(item.ratio_logements_sociaux_pourcent) || 0;
-        dataMap.set(String(item.arrondissement), {
-          value: isNaN(ratio) ? 0 : ratio,
-          display_name: `${ratio.toFixed(1)} %`,
-          nombre_sociaux: item.nombre_logements_sociaux || 0,
-          nombre_total: item.nombre_total_logements || 0,
-        });
+  async function normalizeData(json, idKey, valKey, suffix) {
+    const arr = Array.isArray(json) ? json : json.data || [];
+    const m = new Map();
+    arr.forEach((d) => {
+      const v = parseFloat(d[valKey]) || 0;
+      m.set(getShortId(d[idKey]), {
+        value: v,
+        display_name: `${v.toFixed(0)} ${suffix}`,
       });
-    } else {
-      dataMap = dataCache.get(datasetKey);
-    }
+    });
+    return m;
+  }
 
-    if (datasetKey === "none") {
-      geojsonData.features.forEach((feature) => {
-        feature.properties.value = null;
-        delete feature.properties.display_name;
-        delete feature.properties.nombre_sociaux;
-        delete feature.properties.nombre_total;
-      });
-    } else if (dataMap) {
-      geojsonData.features.forEach((feature) => {
-        const c_arinsee = String(feature.properties.c_arinsee);
-        let arrId = c_arinsee.startsWith("751")
-          ? String(parseInt(c_arinsee.substring(3)))
-          : c_arinsee;
-        const data = dataMap.get(arrId);
+  // ============================================================
+  // 5. AFFICHAGE & COULEURS
+  // ============================================================
 
-        delete feature.properties.display_name;
-        delete feature.properties.nombre_sociaux;
-        delete feature.properties.nombre_total;
+  function loadAndDisplayData(key, subType = "total") {
+    let mapData;
+    if (key === "arrets_count")
+      mapData = dataCache.get(
+        subType === "total" ? "arrets_count_total" : `arrets_${subType}`
+      );
+    else if (key === "logements_sociaux_ratio")
+      mapData = dataCache.get("logements_map");
+    else mapData = dataCache.get(key);
 
-        if (data) {
-          feature.properties.value = data.value || 0;
-          feature.properties.display_name = data.display_name;
-          if (datasetKey === "logements_sociaux_ratio") {
-            feature.properties.nombre_sociaux = data.nombre_sociaux || 0;
-            feature.properties.nombre_total = data.nombre_total || 0;
-          }
-        } else {
-          feature.properties.value = 0;
-          // Gestion des textes par défaut
-          if (datasetKey === "arrets_count")
-            feature.properties.display_name = "0 arrêts";
-          else if (datasetKey === "toilettes_count")
-            feature.properties.display_name = "0 toilettes";
-          else if (datasetKey === "logements_sociaux_ratio")
-            feature.properties.display_name = "N/A";
-          else feature.properties.display_name = "N/A";
+    geojsonData.features.forEach((f) => {
+      const id = getShortId(f.properties.c_arinsee);
+      const d = mapData ? mapData.get(id) : null;
+
+      if (key !== "none" && d) {
+        // --- SÉCURITÉ MAXIMALE ---
+        // On s'assure que 'value' est un nombre. Si non, 0.
+        f.properties.value =
+          typeof d.value === "number" && !isNaN(d.value) ? d.value : 0;
+
+        f.properties.display_name = d.display_name;
+        if (key === "logements_sociaux_ratio") {
+          f.properties.nombre_sociaux = d.nombre_sociaux;
+          f.properties.nombre_total = d.nombre_total;
         }
-      });
-    } else {
-      geojsonData.features.forEach((feature) => {
-        feature.properties.value = 0;
-        feature.properties.display_name = "N/A";
-      });
-    }
+      } else {
+        f.properties.value = 0;
+        f.properties.display_name = "N/A";
+      }
+    });
 
     map.getSource("arrondissements-data").setData(geojsonData);
-    updateMapPaint(datasetKey, subType);
-    updateLegend(datasetKey); // On appelle la légende ici
+    updateMapColors(key);
+    updateLegend(key);
   }
 
-  // --- Gestion des Contrôles et Couleurs ---
-
-  function updateMapPaint(datasetKey, subType = "total") {
-    if (!map.isStyleLoaded()) return;
-
-    if (datasetKey === "none") {
+  function updateMapColors(key) {
+    if (!map.getLayer("arrondissements-remplissage")) return;
+    if (key === "none") {
       map.setPaintProperty(
         "arrondissements-remplissage",
         "fill-color",
         "#CCCCCC"
       );
-      // ... reset opacité/contours
     } else {
-      let colorScale;
-      const dataProperty = ["coalesce", ["get", "value"], 0]; // Utilise 0 si la valeur est null
+      let scale;
 
-      if (datasetKey === "arrets_count") {
-        // Échelle élargie
-        colorScale = [
+      // --- CORRECTION CRITIQUE : COALESCE ---
+      // ['coalesce', ['get', 'value'], 0]
+      // Cela dit à MapLibre : "Essaie de lire 'value'. Si c'est null/vide, utilise 0".
+      // Cela empêche le crash "Expected number but found null".
+      const prop = ["coalesce", ["get", "value"], 0];
+
+      if (key === "arrets_count") {
+        scale = [
           "step",
-          dataProperty,
+          prop,
           "#f7fbff",
           50,
           "#deebf7",
@@ -354,47 +326,39 @@ document.addEventListener("DOMContentLoaded", () => {
           500,
           "#08519c",
         ];
-      } else if (datasetKey === "toilettes_count") {
-        colorScale = [
+      } else if (key === "toilettes_count") {
+        scale = [
           "step",
-          dataProperty,
+          prop,
           "#ffffcc",
           5,
           "#a1dab4",
           15,
           "#41b6c4",
-          25,
+          30,
           "#225ea8",
         ];
-      } else if (datasetKey === "logements_sociaux_ratio") {
-        colorScale = [
+      } else if (key === "logements_sociaux_ratio") {
+        scale = [
           "interpolate",
           ["linear"],
-          dataProperty,
+          prop,
           0,
           "#f7fcfd",
-          5,
+          3,
           "#bfd3e6",
-          12,
+          8,
           "#8c96c6",
-          18,
+          12,
           "#88419d",
-          25,
+          15,
           "#4d004b",
         ];
-      } else {
-        colorScale = "#CCCCCC";
       }
-
-      map.setPaintProperty(
-        "arrondissements-remplissage",
-        "fill-color",
-        colorScale
-      );
+      map.setPaintProperty("arrondissements-remplissage", "fill-color", scale);
     }
   }
 
-  // --- Fonction Légende ---
   function updateLegend(key) {
     if (!legendContainer) return;
     if (key === "none") {
@@ -412,157 +376,222 @@ document.addEventListener("DOMContentLoaded", () => {
       legendBar.style.background =
         "linear-gradient(to right, #ffffcc, #41b6c4, #225ea8)";
       legendMin.textContent = "0";
-      legendMax.textContent = "25+";
+      legendMax.textContent = "30+";
     } else if (key === "logements_sociaux_ratio") {
       legendBar.style.background =
         "linear-gradient(to right, #f7fcfd, #8c96c6, #4d004b)";
       legendMin.textContent = "0%";
-      legendMax.textContent = "25%+";
+      legendMax.textContent = "15%+";
     }
   }
 
-  // Écouteur pour le sélecteur de dataset
-  datasetSelector.addEventListener("change", (event) => {
-    const selectedDatasetKey = event.target.value;
-    if (selectedDatasetKey === "arrets_count") {
-      transportFilterGroup.style.display = "block";
-      transportTypeSelector.value = "total";
-    } else {
-      transportFilterGroup.style.display = "none";
-    }
+  // ============================================================
+  // 6. INTERACTIONS (Events)
+  // ============================================================
 
+  datasetSelector.addEventListener("change", (e) => {
+    const val = e.target.value;
+    transportFilterGroup.style.display =
+      val === "arrets_count" ? "block" : "none";
+    transportTypeSelector.value = "total";
     zonesAComparer.clear();
-    updateFeatureStates();
+    updateSelectionVisuals();
     clearChart();
-    loadAndDisplayData(selectedDatasetKey, "total");
+    loadAndDisplayData(val);
   });
 
-  // Écouteur pour le filtre de type de transport
-  transportTypeSelector.addEventListener("change", (event) => {
-    const subType = event.target.value;
-    loadAndDisplayData("arrets_count", subType);
-    if (zonesAComparer.size > 0) {
-      updateTransportChart(zonesAComparer);
+  transportTypeSelector.addEventListener("change", (e) => {
+    loadAndDisplayData("arrets_count", e.target.value);
+    if (zonesAComparer.size > 0) updateCharts();
+  });
+
+  map.on("mousemove", "arrondissements-remplissage", (e) => {
+    map.getCanvas().style.cursor = "pointer";
+    if (e.features.length > 0) {
+      const p = e.features[0].properties;
+      const txt =
+        datasetSelector.value !== "none"
+          ? `<div><strong>${p.l_ar}</strong><br>${p.display_name}</div>`
+          : `<div><strong>${p.l_ar}</strong></div>`;
+      popup.setLngLat(e.lngLat).setHTML(txt).addTo(map);
     }
   });
+  map.on("mouseleave", "arrondissements-remplissage", () => {
+    map.getCanvas().style.cursor = "";
+    popup.remove();
+  });
 
-  // --- Graphique et Interactivité ---
+  map.on("click", "arrondissements-remplissage", (e) => {
+    if (datasetSelector.value === "none") return;
+    const p = e.features[0].properties;
+    const id = getShortId(p.c_arinsee);
+
+    if (zonesAComparer.has(id)) zonesAComparer.delete(id);
+    else {
+      if (zonesAComparer.size >= 2)
+        zonesAComparer.delete(zonesAComparer.keys().next().value);
+      zonesAComparer.set(id, p);
+    }
+    updateSelectionVisuals();
+    updateCharts();
+  });
+
+  function updateSelectionVisuals() {
+    const features = map.querySourceFeatures("arrondissements-data");
+    features.forEach((f) =>
+      map.setFeatureState(
+        { source: "arrondissements-data", id: f.id },
+        { selected_state: 0 }
+      )
+    );
+    let i = 1;
+    for (const id_raw of zonesAComparer.keys()) {
+      const match = features.find(
+        (f) => getShortId(f.properties.c_arinsee) === id_raw
+      );
+      if (match)
+        map.setFeatureState(
+          { source: "arrondissements-data", id: match.id },
+          { selected_state: i }
+        );
+      i++;
+    }
+  }
+
+  // ============================================================
+  // 7. GRAPHIQUES
+  // ============================================================
 
   function clearChart() {
     chartDiv.innerHTML =
-      '<p style="text-align:center;margin-top:50px;">Sélectionnez un indicateur et cliquez sur un arrondissement.</p>';
-    chartTitle.textContent = "Analyse de la Zone";
+      '<p style="text-align:center; margin-top:50px; color:#777;">Sélectionnez une zone sur la carte.</p>';
     kpiContainer.innerHTML = "";
+    chartTitle.textContent = "Analyse";
   }
 
-  // --- FONCTION GRAPHIQUE 1 : TRANSPORTS ---
-  function updateTransportChart(zonesMap) {
-    const ratioData = dataCache.get("transports_ratio_raw");
-    if (!ratioData) return;
-
-    const currentTransportType = transportTypeSelector.value;
-    kpiContainer.innerHTML = "";
-
-    // KPIs (basés sur 1ère zone)
-    const firstZoneId = zonesMap.keys().next().value;
-    if (firstZoneId) {
-      const firstZoneProps = zonesMap.get(firstZoneId);
-      const arrId = getArrIdFromProps(firstZoneProps);
-      const kpiData = ratioData.filter(
-        (item) => String(item.arrondissement) === arrId
-      );
-
-      ["bus", "metro", "tram", "rail"].forEach((t) => {
-        const val =
-          kpiData.find((d) => d.type.toLowerCase() === t)
-            ?.nombre_arrets_par_type || 0;
-        if (currentTransportType === "total" || currentTransportType === t) {
-          kpiContainer.innerHTML += `
-                    <div class="kpi-card" data-type="${t}">
-                        <div class="kpi-card-title">${t.toUpperCase()}</div>
-                        <div class="kpi-card-value" style="color:${
-                          kpiColors[t]
-                        }">${val}</div>
-                    </div>`;
-        }
-      });
+  function updateCharts() {
+    const key = datasetSelector.value;
+    if (zonesAComparer.size === 0) {
+      clearChart();
+      return;
     }
 
-    // Bar Chart
-    const traces = [];
-    let i = 0;
-    const allTypes =
-      currentTransportType === "total"
-        ? ["bus", "metro", "rail", "tram"]
-        : [currentTransportType];
+    const names = [...zonesAComparer.values()]
+      .map((p) => p.l_ar.split(" ")[0])
+      .join(" vs ");
+    chartTitle.textContent =
+      zonesAComparer.size === 1
+        ? `Analyse : ${names}`
+        : `Comparaison : ${names}`;
 
-    zonesMap.forEach((properties, id) => {
-      const arrId = getArrIdFromProps(properties);
-      const arrData = ratioData.filter(
-        (item) => String(item.arrondissement) === arrId
-      );
-      const values = allTypes.map(
-        (type) =>
-          arrData.find((d) => d.type.toLowerCase() === type)
+    if (key === "arrets_count") drawTransportChart();
+    else if (key === "toilettes_count") drawToiletsChart();
+    else if (key === "logements_sociaux_ratio") drawHousingChart();
+  }
+
+  function drawTransportChart() {
+    const rawData = dataCache.get("transports_ratio_raw");
+    if (!rawData) {
+      console.error("Pas de données transports brutes");
+      return;
+    }
+
+    const typeFilter = transportTypeSelector.value;
+    kpiContainer.innerHTML = "";
+
+    // KPI (basés sur la 1ère zone)
+    const p1 = zonesAComparer.values().next().value;
+    const id1 = getShortId(p1.c_arinsee);
+    const zoneData = rawData.filter(
+      (d) => getShortId(d.arrondissement) === id1
+    );
+
+    ["bus", "metro", "tram", "rail"].forEach((t) => {
+      const val =
+        zoneData.find((d) => d.type.toLowerCase() === t)
+          ?.nombre_arrets_par_type || 0;
+      if (typeFilter === "total" || typeFilter === t) {
+        kpiContainer.innerHTML += `<div class="kpi-card" data-type="${t}"><div class="kpi-card-title">${t.toUpperCase()}</div><div class="kpi-card-value" style="color:${
+          kpiColors[t]
+        }">${val}</div></div>`;
+      }
+    });
+
+    // PLOTLY
+    const traces = [];
+    const types =
+      typeFilter === "total" ? ["bus", "metro", "tram", "rail"] : [typeFilter];
+    const typeColorsArray = [
+      kpiColors.bus,
+      kpiColors.metro,
+      kpiColors.tram,
+      kpiColors.rail,
+    ];
+
+    let zIdx = 0;
+    zonesAComparer.forEach((p, id) => {
+      const zId = getShortId(p.c_arinsee);
+      const zData = rawData.filter((d) => getShortId(d.arrondissement) === zId);
+      const yVals = types.map(
+        (t) =>
+          zData.find((d) => d.type.toLowerCase() === t)
             ?.nombre_arrets_par_type || 0
       );
 
       let barColors;
-      if (zonesMap.size === 1 && currentTransportType === "total")
-        barColors = allTypes.map((t) => kpiColors[t]);
-      else if (zonesMap.size === 1) barColors = kpiColors[currentTransportType];
-      else barColors = comparisonColors[i];
+      if (zonesAComparer.size === 1 && typeFilter === "total")
+        barColors = typeColorsArray;
+      else if (zonesAComparer.size === 1) barColors = kpiColors[typeFilter];
+      else barColors = comparisonColors[zIdx];
 
       traces.push({
-        x: allTypes.map((t) => t.toUpperCase()),
-        y: values,
+        x: types.map((t) => t.toUpperCase()),
+        y: yVals,
+        name: p.l_ar.split(" ")[0],
         type: "bar",
-        name: properties.l_ar.split(" ")[0],
         marker: { color: barColors },
-        text: values.map(String),
+        text: yVals,
         textposition: "auto",
       });
-      i++;
+      zIdx++;
     });
 
-    const layout = {
-      margin: { t: 30, l: 30, r: 20, b: 30 },
-      showlegend: zonesMap.size > 1,
-      paper_bgcolor: "#f8f9fa",
-      plot_bgcolor: "#f8f9fa",
-      xaxis: { showgrid: false },
-      yaxis: { showgrid: true, gridcolor: "#ddd" },
-    };
-    Plotly.newPlot(chartDiv, traces, layout, {
-      responsive: true,
-      displayModeBar: false,
-    });
+    Plotly.newPlot(
+      chartDiv,
+      traces,
+      {
+        margin: { t: 30, l: 30, r: 30, b: 30 },
+        showlegend: zonesAComparer.size > 1,
+        paper_bgcolor: "#f8f9fa",
+        plot_bgcolor: "#f8f9fa",
+        xaxis: { showgrid: false },
+        yaxis: { showgrid: true, gridcolor: "#ddd" },
+      },
+      { responsive: true, displayModeBar: false }
+    );
   }
 
-  // --- FONCTION GRAPHIQUE 2 : TOILETTES ---
-  function updateToiletComparisonChart(zonesMap) {
+  function drawToiletsChart() {
     kpiContainer.innerHTML = "";
-
     const x = [],
       y = [],
       colors = [];
     let i = 0;
-    zonesMap.forEach((properties, id) => {
-      x.push(properties.l_ar.split(" ")[0]);
-      y.push(properties.value || 0);
+    zonesAComparer.forEach((p) => {
+      x.push(p.l_ar.split(" ")[0]);
+      y.push(p.value); // 'value' a été injecté par loadAndDisplayData
       colors.push(comparisonColors[i]);
       kpiContainer.innerHTML += `<div class="kpi-card"><div class="kpi-card-title">${
-        properties.l_ar.split(" ")[0]
+        p.l_ar.split(" ")[0]
       }</div><div class="kpi-card-value" style="color:${comparisonColors[i]}">${
-        properties.value
+        p.value
       }</div></div>`;
       i++;
     });
 
-    // Si 1 seule zone, affichage spécial
-    if (zonesMap.size === 1) {
-      chartDiv.innerHTML = `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;"><h3 style="color:#555">TOTAL</h3><div style="font-size:5rem;color:#225ea8;font-weight:bold;">${y[0]}</div></div>`;
-    } else {
+    if (zonesAComparer.size === 1)
+      chartDiv.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column;"><h3 style="color:#555;">TOTAL</h3><div style="font-size:5rem; font-weight:bold; color:#225ea8">${y[0]}</div></div>`;
+    else
       Plotly.newPlot(
         chartDiv,
         [
@@ -584,49 +613,39 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         { responsive: true, displayModeBar: false }
       );
-    }
   }
 
-  // --- FONCTION GRAPHIQUE 3 : LOGEMENTS SOCIAUX ---
-  function updateSocialHousingChart(zonesMap) {
+  function drawHousingChart() {
     kpiContainer.innerHTML = "";
 
-    // Cas 1 Zone : Donut
-    if (zonesMap.size === 1) {
-      const props = zonesMap.values().next().value;
-      const soc = props.nombre_sociaux || 0;
-      const tot = props.nombre_total || 0;
-      const rat = props.value || 0; // C'est notre ratio calculé
+    if (zonesAComparer.size === 1) {
+      const p = zonesAComparer.values().next().value;
+      const soc = p.nombre_sociaux || 0;
+      const tot = p.nombre_total || 0;
+      const rat = p.value || 0; // C'est notre % calculé
 
-      kpiContainer.innerHTML = `
-                <div class="kpi-card"><div class="kpi-card-title">Social</div><div class="kpi-card-value" style="color:#88419d">${soc.toLocaleString()}</div></div>
-                <div class="kpi-card"><div class="kpi-card-title">Total</div><div class="kpi-card-value">${tot.toLocaleString()}</div></div>
-                <div class="kpi-card"><div class="kpi-card-title">Taux</div><div class="kpi-card-value" style="color:#88419d">${rat.toFixed(
-                  1
-                )}%</div></div>
-            `;
-
-      const data = [
-        {
-          values: [soc, Math.max(0, tot - soc)],
-          labels: ["Logements Sociaux", "Autres"],
-          type: "pie",
-          hole: 0.6,
-          marker: { colors: ["#88419d", "#e0e0e0"] },
-          textinfo: "none",
-          hoverinfo: "label+percent+value",
-          sort: false,
-        },
-      ];
-
+      kpiContainer.innerHTML = `<div class="kpi-card"><div class="kpi-card-title">Social</div><div class="kpi-card-value" style="color:#88419d">${soc.toLocaleString()}</div></div><div class="kpi-card"><div class="kpi-card-title">Total</div><div class="kpi-card-value">${tot.toLocaleString()}</div></div><div class="kpi-card"><div class="kpi-card-title">Taux</div><div class="kpi-card-value" style="color:#88419d">${rat.toFixed(
+        1
+      )}%</div></div>`;
       Plotly.newPlot(
         chartDiv,
-        data,
+        [
+          {
+            values: [soc, Math.max(0, tot - soc)],
+            labels: ["Social", "Privé"],
+            type: "pie",
+            hole: 0.7,
+            marker: { colors: ["#88419d", "#e0e0e0"] },
+            textinfo: "none",
+            hoverinfo: "label+value+percent",
+            sort: false,
+          },
+        ],
         {
           showlegend: false,
           paper_bgcolor: "#f8f9fa",
           plot_bgcolor: "#f8f9fa",
-          margin: { t: 20, l: 20, r: 20, b: 20 },
+          margin: { t: 20, b: 20, l: 20, r: 20 },
           annotations: [
             {
               text: `${rat.toFixed(1)}%`,
@@ -640,12 +659,11 @@ document.addEventListener("DOMContentLoaded", () => {
         { responsive: true, displayModeBar: false }
       );
     } else {
-      // Cas 2 Zones : Barres Comparaison
       const x = [],
         y = [],
         colors = [];
       let i = 0;
-      zonesMap.forEach((p) => {
+      zonesAComparer.forEach((p) => {
         const rat = p.value || 0;
         x.push(p.l_ar.split(" ")[0]);
         y.push(rat);
@@ -657,7 +675,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }">${rat.toFixed(1)}%</div></div>`;
         i++;
       });
-
       Plotly.newPlot(
         chartDiv,
         [
@@ -683,145 +700,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Popups (Survol)
-  map.on("mousemove", "arrondissements-remplissage", (e) => {
-    map.getCanvas().style.cursor = "pointer";
-    if (e.features.length > 0) {
-      const properties = e.features[0].properties;
-      let popupContent = `<div><strong>${properties.l_ar}</strong></div>`;
-
-      if (properties.display_name && datasetSelector.value !== "none") {
-        popupContent = `<div><strong>${properties.l_ar}</strong><br>${properties.display_name}</div>`;
-      }
-
-      const newHoveredId = e.features[0].id;
-      if (hoveredStateId !== newHoveredId) {
-        if (hoveredStateId) {
-          map.setFeatureState(
-            { source: "arrondissements-data", id: hoveredStateId },
-            { hover: false }
-          );
-        }
-        hoveredStateId = newHoveredId;
-        map.setFeatureState(
-          { source: "arrondissements-data", id: hoveredStateId },
-          { hover: true }
-        );
-      }
-      popup.setLngLat(e.lngLat).setHTML(popupContent).addTo(map);
-    }
-  });
-  map.on("mouseleave", "arrondissements-remplissage", () => {
-    map.getCanvas().style.cursor = "";
-    popup.remove();
-    if (hoveredStateId) {
-      map.setFeatureState(
-        { source: "arrondissements-data", id: hoveredStateId },
-        { hover: false }
-      );
-    }
-    hoveredStateId = null;
-  });
-
-  // Clic (pour le graphe)
-  map.on("click", "arrondissements-remplissage", (e) => {
-    const currentKey = datasetSelector.value;
-    if (currentKey === "none") return;
-
-    const properties = e.features[0].properties;
-    const clickedId = properties.c_arinsee;
-
-    // Logique de bascule (Toggle)
-    if (zonesAComparer.has(clickedId)) {
-      zonesAComparer.delete(clickedId);
-    } else {
-      if (zonesAComparer.size >= 2) {
-        const firstId = zonesAComparer.keys().next().value;
-        zonesAComparer.delete(firstId);
-      }
-      zonesAComparer.set(clickedId, properties);
-    }
-
-    updateFeatureStates();
-
-    if (zonesAComparer.size === 0)
-      chartTitle.textContent = "Analyse de la Zone";
-    else if (zonesAComparer.size === 1)
-      chartTitle.textContent = `Analyse : ${
-        [...zonesAComparer.values()][0].l_ar
-      }`;
-    else
-      chartTitle.textContent = `Comparaison : ${[...zonesAComparer.values()]
-        .map((p) => p.l_ar.split(" ")[0])
-        .join(" vs ")}`;
-
-    if (currentKey === "arrets_count") updateTransportChart(zonesAComparer);
-    else if (currentKey === "toilettes_count")
-      updateToiletComparisonChart(zonesAComparer);
-    else if (currentKey === "logements_sociaux_ratio")
-      updateSocialHousingChart(zonesAComparer);
-  });
-
-  function getArrIdFromProps(properties) {
-    const c_arinsee = String(properties.c_arinsee);
-    return c_arinsee.startsWith("751")
-      ? String(parseInt(c_arinsee.substring(3)))
-      : c_arinsee;
-  }
-
-  function updateFeatureStates() {
-    if (map.getSource("arrondissements-data")) {
-      const features = map.querySourceFeatures("arrondissements-data");
-      features.forEach((f) => {
-        if (f.id !== undefined)
-          map.setFeatureState(
-            { source: "arrondissements-data", id: f.id },
-            { selected_state: 0 }
-          );
-      });
-    }
-    let i = 1;
-    for (const id of zonesAComparer.keys()) {
-      map.setFeatureState(
-        { source: "arrondissements-data", id: id },
-        { selected_state: i }
-      );
-      i++;
-    }
-    updateMapPaint(datasetSelector.value, transportTypeSelector.value);
-  }
-
-  // --- Fenêtre Draggable ---
-  function makeDraggable(element, header) {
-    let pos1 = 0,
-      pos2 = 0,
-      pos3 = 0,
-      pos4 = 0;
-    header.onmousedown = dragMouseDown;
-    function dragMouseDown(e) {
-      e.preventDefault();
-      pos3 = e.clientX;
-      pos4 = e.clientY;
-      document.onmouseup = closeDragElement;
-      document.onmousemove = elementDrag;
-    }
-    function elementDrag(e) {
-      e.preventDefault();
-      pos1 = pos3 - e.clientX;
-      pos2 = pos4 - e.clientY;
-      pos3 = e.clientX;
-      pos4 = e.clientY;
-      element.style.top = element.offsetTop - pos2 + "px";
-      element.style.left = element.offsetLeft - pos1 + "px";
-    }
-    function closeDragElement() {
+  // ============================================================
+  // 8. DRAGGABLE WINDOW
+  // ============================================================
+  const d = document.getElementById("graph-window");
+  const h = document.querySelector(".window-header");
+  let x = 0,
+    y = 0,
+    mx = 0,
+    my = 0;
+  h.onmousedown = (e) => {
+    e.preventDefault();
+    mx = e.clientX;
+    my = e.clientY;
+    document.onmouseup = () => {
       document.onmouseup = null;
       document.onmousemove = null;
-    }
-  }
-  makeDraggable(graphWindow, chartHeader);
-  const resizeObserver = new ResizeObserver(() => {
+    };
+    document.onmousemove = (e) => {
+      e.preventDefault();
+      x = mx - e.clientX;
+      y = my - e.clientY;
+      mx = e.clientX;
+      my = e.clientY;
+      d.style.top = d.offsetTop - y + "px";
+      d.style.left = d.offsetLeft - x + "px";
+    };
+  };
+  new ResizeObserver(() => {
     if (chartDiv) Plotly.Plots.resize(chartDiv);
-  });
-  resizeObserver.observe(graphWindow);
+  }).observe(d);
 });

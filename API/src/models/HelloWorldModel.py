@@ -1,6 +1,6 @@
 from flask import jsonify
 
-def HelloWorld():
+def HelloWorldModel():
     try:
         return "Hello World"
     except Exception as e:

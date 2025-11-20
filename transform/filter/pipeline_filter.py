@@ -102,7 +102,7 @@ def csv_to_mysql(paths):
         table_name = obj["table_name"]
 
         try:
-            with open(path, 'r', encoding='utf-8') as csvfile:
+            with open(path, 'r', encoding='utf-8-sig') as csvfile:
                 sample = csvfile.read(2048)
                 csvfile.seek(0)
                 dialect = csv.Sniffer().sniff(sample)
@@ -121,22 +121,29 @@ def csv_to_mysql(paths):
                     {', '.join(f'`{c}` varchar(255)' for c in columns)}
                 );
                 """
+                cursor.execute(f"DROP TABLE IF EXISTS `{table_name}`")
                 cursor.execute(create_table_query)
-                cursor.execute(f"truncate table `{table_name}`")
 
                 placeholders = ', '.join(['%s'] * len(columns))
                 safe_columns = ', '.join(f"`{c}`" for c in columns)
                 insert_query = f"insert into `{table_name}` ({safe_columns}) values ({placeholders})"
 
+                row_count = 0
                 for row in reader:
-                    cleaned_row = [v for i, v in enumerate(row) if headers[i].strip() != ""]
-                    cursor.execute(insert_query, cleaned_row)
+                    if len(row) < len(headers):
+                        row += [""] * (len(headers) - len(row))
+                    cleaned_row = [row[i] for i in range(len(headers)) if headers[i].strip() != ""]
+                    if len(cleaned_row) == len(columns):
+                        cursor.execute(insert_query, cleaned_row)
+                        row_count += 1
+                    else:
+                        print(f"Warning: Row has {len(cleaned_row)} values but {len(columns)} expected")
 
                 conn.commit()
-                print(f"Import finished for {table_name}")
+                print(f"Import finished for {table_name}: {row_count} rows imported")
 
         except Exception as e:
-            print(e)
+            print(f"Error importing {table_name}: {e}")
 
     cursor.close()
     conn.close()

@@ -1,10 +1,10 @@
 from flask import jsonify
-from models.TreeModel import getTreeModel
+from models.LandValueModel import getLandValueModel
 from controllers.response_controller import set_response_headers
 
-def getTreeController():
+def getLandValueModelController():
     try:
-        myresult = getTreeModel()
+        myresult = getLandValueModel()
         response = jsonify(data=myresult)
         response = set_response_headers(response)
         return response, 200

@@ -1,47 +1,13 @@
-const https = require("https");
+const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
 const PORT = 3443;
 
-// Créer des certificats auto-signés s'ils n'existent pas
-const certPath = path.join(__dirname, "cert.pem");
-const keyPath = path.join(__dirname, "key.pem");
-
-if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
-  console.log("Génération des certificats auto-signés...");
-  const { exec } = require("child_process");
-  const command =
-    process.platform === "win32"
-      ? `openssl req -nodes -new -x509 -keyout "${keyPath}" -out "${certPath}" -days 365 -subj "/CN=localhost"`
-      : `openssl req -nodes -new -x509 -keyout ${keyPath} -out ${certPath} -days 365 -subj "/CN=localhost"`;
-
-  exec(command, (error) => {
-    if (error) {
-      console.warn(
-        "OpenSSL non disponible. Utilisation de certificats auto-générés..."
-      );
-      const selfSignedCert = require("selfsigned");
-      const attrs = [{ name: "commonName", value: "localhost" }];
-      const pem = selfSignedCert.generate(attrs);
-      fs.writeFileSync(keyPath, pem.private);
-      fs.writeFileSync(certPath, pem.cert);
-    }
-    startServer();
-  });
-} else {
-  startServer();
-}
-
 function startServer() {
-  const options = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath),
-  };
-
-  const server = https.createServer(options, (req, res) => {
+  const server = http.createServer((req, res) => {
     // Extraire le chemin sans les query parameters
-    const urlPath = new URL(req.url, `https://localhost:${PORT}`).pathname;
+    const urlPath = new URL(req.url, `http://localhost:${PORT}`).pathname;
     let filePath = path.join(__dirname, urlPath);
 
     // Si c'est une requête de répertoire, servir index.html
@@ -90,10 +56,9 @@ function startServer() {
 
   server.listen(PORT, () => {
     console.log(
-      `🔒 Serveur HTTPS en cours d'exécution sur https://localhost:${PORT}`
-    );
-    console.log(
-      "⚠️  Note: Acceptez le certificat auto-signé dans votre navigateur"
+      `🌐 Serveur HTTP en cours d'exécution sur http://localhost:${PORT}`
     );
   });
 }
+
+startServer();
