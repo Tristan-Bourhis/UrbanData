@@ -8,7 +8,7 @@ config = {
     'database': 'flaskdb',
 }
 
-def toilette_agregation():
+def valeursFoncieres_agregation():
     try:
         connection = mysql.connector.connect(**config)
         if connection.is_connected():
@@ -57,4 +57,4 @@ def toilette_agregation():
             connection.close()
 
 if __name__ == "__main__":
-    toilette_agregation()
+    valeursFoncieres_agregation()
