@@ -1,46 +1,26 @@
 #!/bin/bash
-set -e 
+set -e
+
+git fetch origin prod
+git reset --hard origin/prod
 
 cd API
-docker compose up --build -d
-echo "API lauched"
-
-echo "Filter Pipeline"
+docker compose up -d --build --remove-orphans
 cd ../transform/filter
-python pipeline_filter.py
+if [ -f requirements.txt ]; then
+    pip3 install -r requirements.txt --break-system-packages
+fi
+python3 pipeline_filter.py
 
-echo "Agregation Pipeline"
-cd ../agregation
-python pipeline_agregation.py
+echo "➕ Exécution du Pipeline Agregation..."
+cd ../agregation # On suppose que agregation est frère de filter
+if [ -f requirements.txt ]; then
+    pip3 install -r requirements.txt --break-system-packages
+fi
+python3 pipeline_agregation.py
 
 cd ../../dashboard-frontend
 npm install
-
-(
-    URL="http://localhost:3443/"
-
-    open_url() {
-        browser="$1"
-        case "$browser" in
-            firefox)
-                if command -v firefox &>/dev/null; then firefox "$URL"; exit 0; fi ;;
-            chrome|google-chrome)
-                if command -v google-chrome &>/dev/null; then google-chrome "$URL"; exit 0; fi
-                if command -v chrome &>/dev/null; then chrome "$URL"; exit 0; fi
-                if command -v chromium &>/dev/null; then chromium "$URL"; exit 0; fi ;;
-            *)
-                command -v "$browser" &>/dev/null && "$browser" "$URL" && exit 0 ;;
-        esac
-    }
-
-    case "$OSTYPE" in
-        darwin*) open_url firefox; open_url chrome; command -v open &>/dev/null && open "$URL" ;;
-        linux*)  open_url chrome; open_url firefox; command -v xdg-open &>/dev/null && xdg-open "$URL" ;;
-        cygwin*|msys*|win32*) open_url chrome; open_url firefox; command -v start &>/dev/null && start "" "$URL" ;;
-    esac
-
-    echo "Impossible d’ouvrir le navigateur."
-) & 
-
-npm start
-echo "Everything is lauched"
+pm2 reload dashboard-frontend || pm2 start npm --name "dashboard-frontend" -- start
+pm2 save
+echo "✅ Tout est lancé et synchronisé !"
