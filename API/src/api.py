@@ -63,8 +63,8 @@ def check_api_key():
         '/api/get-social-housing': 'get-token',
         '/api/get-number-station': 'get-token',
         '/api/get-type-ratio-station': 'get-token',
-        '/api//get-stations-points': 'get-token',
-        '/api//get-tree': 'get-token',
+        '/api/get-stations-points': 'get-token',
+        '/api/get-tree': 'get-token',
     }
 
     for route_prefix, perm in route_perm_map.items():
