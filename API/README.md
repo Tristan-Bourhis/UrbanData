@@ -54,7 +54,7 @@ VALUES
    SECRET_KEY=random_long_stable_string
    ```
 
-2. **Create a SSL certificate (optionnal)**
+2. **Create a SSL certificate (optionnal + you must have to update this : app.run(host="0.0.0.0", port=5000, debug=True))**
 
    ```bash
    cd src
