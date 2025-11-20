@@ -1,17 +1,19 @@
-// js/app.js (VERSION CORRIGÉE : Fix du crash MapLibre "null value")
-
 document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // 1. CONFIGURATION & SÉLECTEURS
   // ============================================================
 
-  // ATTENTION : Si tu es en local, garde http. Si tu déploies, passe en https.
   const API_URL = "http://localhost:5000/api";
   const API_KEY = "APIKEY-VIEWER-67890";
 
   const datasetSelector = document.getElementById("dataset-selector");
+
+  // Selecteurs Slider
+  const yearSliderGroup = document.getElementById("year-slider-group");
+  const yearSlider = document.getElementById("year-slider");
+  const yearDisplay = document.getElementById("year-display");
+
   const graphWindow = document.getElementById("graph-window");
-  const chartHeader = graphWindow.querySelector(".window-header");
   const chartTitle = document.getElementById("chart-title");
   const chartDiv = document.getElementById("timeline-chart");
   const kpiContainer = document.getElementById("kpi-container");
@@ -31,7 +33,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let geojsonData = null;
   const dataCache = new Map();
   let zonesAComparer = new Map();
-  let hoveredStateId = null;
+
+  let transportPointsData = [];
+  let treePointsData = [];
+
+  let selectedTransportType = "total";
+  let currentYear = 2025; // Année par défaut
 
   // Couleurs
   const comparisonColors = ["#007bff", "#d7191c"];
@@ -40,6 +47,8 @@ document.addEventListener("DOMContentLoaded", () => {
     metro: "#8a2be2",
     tram: "#20c997",
     rail: "#fd7e14",
+    tree: "#28a745",
+    immo: "#d63384", // Rose pour l'immo
   };
 
   // ============================================================
@@ -73,12 +82,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ============================================================
-  // 4. CHARGEMENT DONNÉES (Logique Cœur)
+  // 4. CHARGEMENT DONNÉES
   // ============================================================
 
   map.on("load", async () => {
     try {
-      // 1. GeoJSON
+      // GeoJSON
       const response = await fetch("data/arrondissements.geojson");
       if (!response.ok) throw new Error("GeoJSON introuvable");
       geojsonData = await response.json();
@@ -89,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
         promoteId: "c_arinsee",
       });
 
-      // 2. Layers
+      // Layers de base
       map.addLayer({
         id: "arrondissements-remplissage",
         type: "fill",
@@ -145,10 +154,13 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       });
 
-      // 3. API Data
+      // Chargement API
       await cacheAllAPIData();
 
-      // 4. Init Premier Affichage
+      createTransportPointsSourceAndLayers();
+      createTreePointsSourceAndLayers();
+
+      // Init
       if (datasetSelector.value !== "none") {
         loadAndDisplayData(datasetSelector.value);
       }
@@ -160,8 +172,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function cacheAllAPIData() {
     const opts = { headers: { "X-API-KEY": API_KEY } };
-
-    // Helper pour fetch sécurisé
     const safeFetch = async (url) => {
       try {
         const r = await fetch(url, opts);
@@ -172,9 +182,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
 
-    console.log("Chargement des données API...");
+    console.log("Chargement données...");
 
-    // --- A. ARRÊTS & TOILETTES ---
+    // A. Stations
     const resArr = await safeFetch(`${API_URL}/get-number-station`);
     dataCache.set(
       "arrets_count_total",
@@ -186,30 +196,49 @@ document.addEventListener("DOMContentLoaded", () => {
       )
     );
 
+    // B. Toilettes
     const resToil = await safeFetch(`${API_URL}/get-toilet-by-a`);
     dataCache.set(
       "toilettes_count",
       await normalizeData(resToil, "arrondissement", "nombre", "toilettes")
     );
 
-    // --- B. LOGEMENTS SOCIAUX ---
+    // C. Arbres
+    const resTreeCount = await safeFetch(`${API_URL}/get-tree-number`);
+    dataCache.set(
+      "arbres_count",
+      await normalizeData(
+        resTreeCount,
+        "arrondissement",
+        "nombre_arbre",
+        "arbres"
+      )
+    );
+    const resTreePoints = await safeFetch(`${API_URL}/get-tree`);
+    let rawTreePoints = Array.isArray(resTreePoints)
+      ? resTreePoints
+      : resTreePoints.data || [];
+    treePointsData = rawTreePoints.map((t) => {
+      const gp = t.geo_point_2d || "";
+      const coords = gp.split(",").map((c) => parseFloat(c.trim()));
+      return {
+        ...t,
+        short_arr: getShortId(t.arrondissement),
+        _lon: coords.length === 2 && !isNaN(coords[1]) ? coords[1] : null,
+        _lat: coords.length === 2 && !isNaN(coords[0]) ? coords[0] : null,
+      };
+    });
+
+    // D. Logements
     const resLog = await safeFetch(`${API_URL}/get-social-housing`);
     const logData = Array.isArray(resLog) ? resLog : resLog.data || [];
-
-    console.log("DEBUG DATA LOGEMENTS:", logData[0]); // Pour vérifier
-
     const logMap = new Map();
     logData.forEach((d) => {
       const id = getShortId(d.arrondissement);
       const soc = parseInt(d.nombre_logements_sociaux) || 0;
       const tot = parseInt(d.nombre_total_logements) || 0;
-
-      // On priorise la valeur de l'API si elle existe (8.74), sinon on calcule
       let ratio = parseFloat(d.ratio_logements_sociaux_pourcent);
-      if (isNaN(ratio)) {
-        ratio = tot > 0 ? (soc / tot) * 100 : 0;
-      }
-
+      if (isNaN(ratio)) ratio = tot > 0 ? (soc / tot) * 100 : 0;
       logMap.set(id, {
         value: ratio,
         display_name: `${ratio.toFixed(1)} %`,
@@ -219,13 +248,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     dataCache.set("logements_map", logMap);
 
-    // --- C. TRANSPORTS DÉTAIL ---
+    // E. Transports Détail
     const resRatio = await safeFetch(`${API_URL}/get-type-ratio-station`);
     const ratioData = Array.isArray(resRatio) ? resRatio : resRatio.data || [];
-
-    // IMPORTANT : On stocke avec la clé EXACTE utilisée plus tard
     dataCache.set("transports_ratio_raw", ratioData);
-
     ["bus", "metro", "tram", "rail"].forEach((t) => {
       const tMap = new Map();
       ratioData
@@ -239,7 +265,53 @@ document.addEventListener("DOMContentLoaded", () => {
       dataCache.set(`arrets_${t}`, tMap);
     });
 
-    console.log("Données chargées et mises en cache.");
+    const resPoints = await safeFetch(`${API_URL}/get-stations-points`);
+    transportPointsData = Array.isArray(resPoints)
+      ? resPoints
+      : resPoints.data || [];
+    transportPointsData = transportPointsData.map((p) => {
+      const gp = p.geo_point_2d || "";
+      const coords = gp.split(",").map((c) => parseFloat(c.trim()));
+      return {
+        ...p,
+        short_arr: getShortId(p.arrondissement),
+        _lon: coords.length === 2 && !isNaN(coords[1]) ? coords[1] : null,
+        _lat: coords.length === 2 && !isNaN(coords[0]) ? coords[0] : null,
+        _label:
+          typeof p.type === "string" && p.type.length > 0
+            ? p.type.charAt(0).toUpperCase()
+            : "?",
+        _type: typeof p.type === "string" ? p.type.toLowerCase() : "unknown",
+      };
+    });
+
+    // --- F. VALEUR FONCIERE ---
+    const resLand = await safeFetch(`${API_URL}/get-land-value`);
+    const landData = Array.isArray(resLand) ? resLand : resLand.data || [];
+
+    dataCache.set("land_value_raw", landData);
+
+    const landByYear = new Map();
+    landData.forEach((d) => {
+      const y = parseInt(d.annee);
+      const id = getShortId(d.arrondissement);
+      if (!landByYear.has(y)) landByYear.set(y, new Map());
+
+      const cleanData = {
+        value: parseFloat(d.prix_m2_moyen) || 0,
+        display_name: `${parseFloat(d.prix_m2_moyen).toLocaleString(
+          "fr-FR"
+        )} €/m²`,
+        prix_m2: parseFloat(d.prix_m2_moyen) || 0,
+        prix_total: parseFloat(d.prix_moyen) || 0,
+        surface: parseFloat(d.surface_totale_moyenne) || 0,
+        pieces: parseFloat(d.nb_pieces_moyen) || 0,
+      };
+      landByYear.get(y).set(id, cleanData);
+    });
+    dataCache.set("land_value_map_by_year", landByYear);
+
+    console.log("Toutes les données sont chargées.");
   }
 
   async function normalizeData(json, idKey, valKey, suffix) {
@@ -256,33 +328,235 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 5. AFFICHAGE & COULEURS
+  // 5. GESTION POINTS (Layers)
+  // ============================================================
+
+  function createTransportPointsSourceAndLayers() {
+    map.addSource("transport-points", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    map.addLayer({
+      id: "transport-points-circle",
+      type: "circle",
+      source: "transport-points",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          4,
+          12,
+          6,
+          15,
+          10,
+        ],
+        "circle-color": [
+          "match",
+          ["get", "type"],
+          "bus",
+          kpiColors.bus,
+          "metro",
+          kpiColors.metro,
+          "tram",
+          kpiColors.tram,
+          "rail",
+          kpiColors.rail,
+          "#666",
+        ],
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#ffffff",
+        "circle-opacity": 0.95,
+      },
+      layout: { visibility: "none" },
+    });
+    map.addLayer({
+      id: "transport-points-label",
+      type: "symbol",
+      source: "transport-points",
+      layout: {
+        "text-field": ["get", "label"],
+        "text-size": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          8,
+          12,
+          10,
+          15,
+          14,
+        ],
+        "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+        "symbol-placement": "point",
+        visibility: "none",
+      },
+      paint: {
+        "text-color": "#ffffff",
+        "text-halo-color": "rgba(0,0,0,0.25)",
+        "text-halo-width": 0.5,
+      },
+    });
+    setupPointInteraction(
+      "transport-points-circle",
+      (props) =>
+        `<strong>${props.nom || ""}</strong><br>${props.type || ""}<br>Arr. ${
+          props.arrondissement || ""
+        }`
+    );
+  }
+
+  function createTreePointsSourceAndLayers() {
+    map.addSource("tree-points", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    map.addLayer({
+      id: "tree-points-circle",
+      type: "circle",
+      source: "tree-points",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          10,
+          3,
+          14,
+          5,
+          16,
+          8,
+        ],
+        "circle-color": kpiColors.tree,
+        "circle-stroke-width": 0.5,
+        "circle-stroke-color": "#ffffff",
+        "circle-opacity": 0.8,
+      },
+      layout: { visibility: "none" },
+    });
+    setupPointInteraction(
+      "tree-points-circle",
+      (props) =>
+        `<strong>Arbre</strong><br>Espèce : ${
+          props.espece || "Inconnue"
+        }<br>Hauteur : ${props.hauteur || "?"} m`
+    );
+  }
+
+  function setupPointInteraction(layerId, contentCallback) {
+    map.on(
+      "mouseenter",
+      layerId,
+      () => (map.getCanvas().style.cursor = "pointer")
+    );
+    map.on("mouseleave", layerId, () => (map.getCanvas().style.cursor = ""));
+    map.on("click", layerId, (e) => {
+      if (!e.features || !e.features[0]) return;
+      const feat = e.features[0];
+      document.querySelectorAll(".maplibregl-popup").forEach((p) => p.remove());
+      new maplibregl.Popup({ closeButton: false, offset: 10 })
+        .setLngLat(feat.geometry.coordinates.slice())
+        .setHTML(contentCallback(feat.properties))
+        .addTo(map);
+    });
+  }
+
+  function updatePointsLayer() {
+    const dataset = datasetSelector.value;
+    const selectedIds = Array.from(zonesAComparer.keys());
+    if (map.getLayer("transport-points-circle"))
+      map.setLayoutProperty("transport-points-circle", "visibility", "none");
+    if (map.getLayer("transport-points-label"))
+      map.setLayoutProperty("transport-points-label", "visibility", "none");
+    if (map.getLayer("tree-points-circle"))
+      map.setLayoutProperty("tree-points-circle", "visibility", "none");
+
+    if (zonesAComparer.size === 0) return;
+
+    if (dataset === "arrets_count") {
+      let filtered = transportPointsData.filter(
+        (p) => p._lat && p._lon && selectedIds.includes(p.short_arr)
+      );
+      if (selectedTransportType !== "total")
+        filtered = filtered.filter((p) => p._type === selectedTransportType);
+      const features = filtered.map((p) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p._lon, p._lat] },
+        properties: {
+          nom: p.nom,
+          type: p.type,
+          arrondissement: p.short_arr,
+          label: p._label,
+        },
+      }));
+      map
+        .getSource("transport-points")
+        .setData({ type: "FeatureCollection", features });
+      map.setLayoutProperty("transport-points-circle", "visibility", "visible");
+      map.setLayoutProperty("transport-points-label", "visibility", "visible");
+    }
+    if (dataset === "arbres_count") {
+      let filtered = treePointsData.filter(
+        (p) => p._lat && p._lon && selectedIds.includes(p.short_arr)
+      );
+      const features = filtered.map((p) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [p._lon, p._lat] },
+        properties: {
+          espece: p.espece,
+          hauteur: p.hauteur,
+          arrondissement: p.short_arr,
+        },
+      }));
+      map
+        .getSource("tree-points")
+        .setData({ type: "FeatureCollection", features });
+      map.setLayoutProperty("tree-points-circle", "visibility", "visible");
+    }
+  }
+
+  // ============================================================
+  // 6. AFFICHAGE & COULEURS
   // ============================================================
 
   function loadAndDisplayData(key, subType = "total") {
-    let mapData;
+    let mapData = null;
+
     if (key === "arrets_count")
       mapData = dataCache.get(
         subType === "total" ? "arrets_count_total" : `arrets_${subType}`
       );
     else if (key === "logements_sociaux_ratio")
       mapData = dataCache.get("logements_map");
-    else mapData = dataCache.get(key);
+    else if (key === "arbres_count") mapData = dataCache.get("arbres_count");
+    else if (key === "toilettes_count")
+      mapData = dataCache.get("toilettes_count");
+    else if (key === "valeur_fonciere") {
+      const allYears = dataCache.get("land_value_map_by_year");
+      if (allYears && allYears.has(currentYear)) {
+        mapData = allYears.get(currentYear);
+      }
+    }
 
     geojsonData.features.forEach((f) => {
       const id = getShortId(f.properties.c_arinsee);
       const d = mapData ? mapData.get(id) : null;
 
       if (key !== "none" && d) {
-        // --- SÉCURITÉ MAXIMALE ---
-        // On s'assure que 'value' est un nombre. Si non, 0.
         f.properties.value =
           typeof d.value === "number" && !isNaN(d.value) ? d.value : 0;
-
         f.properties.display_name = d.display_name;
+
         if (key === "logements_sociaux_ratio") {
           f.properties.nombre_sociaux = d.nombre_sociaux;
           f.properties.nombre_total = d.nombre_total;
+        }
+
+        if (key === "valeur_fonciere") {
+          f.properties.prix_m2 = d.prix_m2;
+          f.properties.surface = d.surface;
+          f.properties.pieces = d.pieces;
         }
       } else {
         f.properties.value = 0;
@@ -304,13 +578,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "#CCCCCC"
       );
     } else {
-      let scale;
-
-      // --- CORRECTION CRITIQUE : COALESCE ---
-      // ['coalesce', ['get', 'value'], 0]
-      // Cela dit à MapLibre : "Essaie de lire 'value'. Si c'est null/vide, utilise 0".
-      // Cela empêche le crash "Expected number but found null".
       const prop = ["coalesce", ["get", "value"], 0];
+      let scale;
 
       if (key === "arrets_count") {
         scale = [
@@ -354,6 +623,34 @@ document.addEventListener("DOMContentLoaded", () => {
           15,
           "#4d004b",
         ];
+      } else if (key === "arbres_count") {
+        scale = [
+          "step",
+          prop,
+          "#e5f5e0",
+          5000,
+          "#a1d99b",
+          10000,
+          "#31a354",
+          15000,
+          "#006d2c",
+        ];
+      } else if (key === "valeur_fonciere") {
+        scale = [
+          "interpolate",
+          ["linear"],
+          prop,
+          8000,
+          "#feebe2",
+          10000,
+          "#fbb4b9",
+          12000,
+          "#f768a1",
+          14000,
+          "#c51b8a",
+          16000,
+          "#7a0177",
+        ];
       }
       map.setPaintProperty("arrondissements-remplissage", "fill-color", scale);
     }
@@ -369,7 +666,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (key === "arrets_count") {
       legendBar.style.background =
-        "linear-gradient(to right, #f7fbff, #9ecae1, #08519c)";
+        "linear-gradient(to right, #f7fbff, #3182bd, #08519c)";
       legendMin.textContent = "0";
       legendMax.textContent = "500+";
     } else if (key === "toilettes_count") {
@@ -382,43 +679,56 @@ document.addEventListener("DOMContentLoaded", () => {
         "linear-gradient(to right, #f7fcfd, #8c96c6, #4d004b)";
       legendMin.textContent = "0%";
       legendMax.textContent = "15%+";
+    } else if (key === "arbres_count") {
+      legendBar.style.background =
+        "linear-gradient(to right, #e5f5e0, #31a354, #006d2c)";
+      legendMin.textContent = "0";
+      legendMax.textContent = "15k+";
+    } else if (key === "valeur_fonciere") {
+      legendBar.style.background =
+        "linear-gradient(to right, #feebe2, #f768a1, #7a0177)";
+      legendMin.textContent = "8k €";
+      legendMax.textContent = "16k €";
     }
   }
 
   // ============================================================
-  // 6. INTERACTIONS (Events)
+  // 7. INTERACTIONS
   // ============================================================
 
   datasetSelector.addEventListener("change", (e) => {
     const val = e.target.value;
+
     transportFilterGroup.style.display =
       val === "arrets_count" ? "block" : "none";
+    yearSliderGroup.style.display = val === "valeur_fonciere" ? "flex" : "none";
+
     transportTypeSelector.value = "total";
+    selectedTransportType = "total";
     zonesAComparer.clear();
+
     updateSelectionVisuals();
     clearChart();
     loadAndDisplayData(val);
+
+    document.querySelectorAll(".maplibregl-popup").forEach((p) => p.remove());
+    updatePointsLayer();
+  });
+
+  yearSlider.addEventListener("input", (e) => {
+    currentYear = parseInt(e.target.value);
+    yearDisplay.textContent = currentYear;
+    if (datasetSelector.value === "valeur_fonciere") {
+      loadAndDisplayData("valeur_fonciere");
+      if (zonesAComparer.size > 0) updateCharts();
+    }
   });
 
   transportTypeSelector.addEventListener("change", (e) => {
+    selectedTransportType = e.target.value;
     loadAndDisplayData("arrets_count", e.target.value);
+    updatePointsLayer();
     if (zonesAComparer.size > 0) updateCharts();
-  });
-
-  map.on("mousemove", "arrondissements-remplissage", (e) => {
-    map.getCanvas().style.cursor = "pointer";
-    if (e.features.length > 0) {
-      const p = e.features[0].properties;
-      const txt =
-        datasetSelector.value !== "none"
-          ? `<div><strong>${p.l_ar}</strong><br>${p.display_name}</div>`
-          : `<div><strong>${p.l_ar}</strong></div>`;
-      popup.setLngLat(e.lngLat).setHTML(txt).addTo(map);
-    }
-  });
-  map.on("mouseleave", "arrondissements-remplissage", () => {
-    map.getCanvas().style.cursor = "";
-    popup.remove();
   });
 
   map.on("click", "arrondissements-remplissage", (e) => {
@@ -433,7 +743,40 @@ document.addEventListener("DOMContentLoaded", () => {
       zonesAComparer.set(id, p);
     }
     updateSelectionVisuals();
+    updatePointsLayer();
     updateCharts();
+  });
+
+  map.on("mousemove", "arrondissements-remplissage", (e) => {
+    map.getCanvas().style.cursor = "pointer";
+    if (e.features.length > 0) {
+      const p = e.features[0].properties;
+      let txt = `<div><strong>${p.l_ar}</strong></div>`;
+      if (datasetSelector.value !== "none") {
+        txt += `<div style='margin-top:4px; color:#555;'>${p.display_name}</div>`;
+        if (datasetSelector.value === "valeur_fonciere") {
+          txt += `<div style='font-size:0.8em; color:#888;'>${currentYear}</div>`;
+        }
+      }
+      popup.setLngLat(e.lngLat).setHTML(txt).addTo(map);
+    }
+  });
+  map.on("mouseleave", "arrondissements-remplissage", () => {
+    map.getCanvas().style.cursor = "";
+    popup.remove();
+  });
+
+  map.on("click", (e) => {
+    const layersToCheck = [
+      "transport-points-circle",
+      "tree-points-circle",
+      "arrondissements-remplissage",
+    ];
+    const features = map.queryRenderedFeatures(e.point, {
+      layers: layersToCheck,
+    });
+    if (!features.length)
+      document.querySelectorAll(".maplibregl-popup").forEach((p) => p.remove());
   });
 
   function updateSelectionVisuals() {
@@ -459,7 +802,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ============================================================
-  // 7. GRAPHIQUES
+  // 8. GRAPHIQUES
   // ============================================================
 
   function clearChart() {
@@ -487,158 +830,43 @@ document.addEventListener("DOMContentLoaded", () => {
     if (key === "arrets_count") drawTransportChart();
     else if (key === "toilettes_count") drawToiletsChart();
     else if (key === "logements_sociaux_ratio") drawHousingChart();
+    else if (key === "arbres_count") drawTreesChart();
+    else if (key === "valeur_fonciere") drawLandValueChart();
   }
 
-  function drawTransportChart() {
-    const rawData = dataCache.get("transports_ratio_raw");
-    if (!rawData) {
-      console.error("Pas de données transports brutes");
-      return;
-    }
-
-    const typeFilter = transportTypeSelector.value;
-    kpiContainer.innerHTML = "";
-
-    // KPI (basés sur la 1ère zone)
-    const p1 = zonesAComparer.values().next().value;
-    const id1 = getShortId(p1.c_arinsee);
-    const zoneData = rawData.filter(
-      (d) => getShortId(d.arrondissement) === id1
-    );
-
-    ["bus", "metro", "tram", "rail"].forEach((t) => {
-      const val =
-        zoneData.find((d) => d.type.toLowerCase() === t)
-          ?.nombre_arrets_par_type || 0;
-      if (typeFilter === "total" || typeFilter === t) {
-        kpiContainer.innerHTML += `<div class="kpi-card" data-type="${t}"><div class="kpi-card-title">${t.toUpperCase()}</div><div class="kpi-card-value" style="color:${
-          kpiColors[t]
-        }">${val}</div></div>`;
-      }
-    });
-
-    // PLOTLY
-    const traces = [];
-    const types =
-      typeFilter === "total" ? ["bus", "metro", "tram", "rail"] : [typeFilter];
-    const typeColorsArray = [
-      kpiColors.bus,
-      kpiColors.metro,
-      kpiColors.tram,
-      kpiColors.rail,
-    ];
-
-    let zIdx = 0;
-    zonesAComparer.forEach((p, id) => {
-      const zId = getShortId(p.c_arinsee);
-      const zData = rawData.filter((d) => getShortId(d.arrondissement) === zId);
-      const yVals = types.map(
-        (t) =>
-          zData.find((d) => d.type.toLowerCase() === t)
-            ?.nombre_arrets_par_type || 0
-      );
-
-      let barColors;
-      if (zonesAComparer.size === 1 && typeFilter === "total")
-        barColors = typeColorsArray;
-      else if (zonesAComparer.size === 1) barColors = kpiColors[typeFilter];
-      else barColors = comparisonColors[zIdx];
-
-      traces.push({
-        x: types.map((t) => t.toUpperCase()),
-        y: yVals,
-        name: p.l_ar.split(" ")[0],
-        type: "bar",
-        marker: { color: barColors },
-        text: yVals,
-        textposition: "auto",
-      });
-      zIdx++;
-    });
-
-    Plotly.newPlot(
-      chartDiv,
-      traces,
-      {
-        margin: { t: 30, l: 30, r: 30, b: 30 },
-        showlegend: zonesAComparer.size > 1,
-        paper_bgcolor: "#f8f9fa",
-        plot_bgcolor: "#f8f9fa",
-        xaxis: { showgrid: false },
-        yaxis: { showgrid: true, gridcolor: "#ddd" },
-      },
-      { responsive: true, displayModeBar: false }
-    );
-  }
-
-  function drawToiletsChart() {
-    kpiContainer.innerHTML = "";
-    const x = [],
-      y = [],
-      colors = [];
-    let i = 0;
-    zonesAComparer.forEach((p) => {
-      x.push(p.l_ar.split(" ")[0]);
-      y.push(p.value); // 'value' a été injecté par loadAndDisplayData
-      colors.push(comparisonColors[i]);
-      kpiContainer.innerHTML += `<div class="kpi-card"><div class="kpi-card-title">${
-        p.l_ar.split(" ")[0]
-      }</div><div class="kpi-card-value" style="color:${comparisonColors[i]}">${
-        p.value
-      }</div></div>`;
-      i++;
-    });
-
-    if (zonesAComparer.size === 1)
-      chartDiv.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column;"><h3 style="color:#555;">TOTAL</h3><div style="font-size:5rem; font-weight:bold; color:#225ea8">${y[0]}</div></div>`;
-    else
-      Plotly.newPlot(
-        chartDiv,
-        [
-          {
-            x,
-            y,
-            type: "bar",
-            marker: { color: colors },
-            text: y,
-            textposition: "auto",
-          },
-        ],
-        {
-          paper_bgcolor: "#f8f9fa",
-          plot_bgcolor: "#f8f9fa",
-          margin: { t: 30, l: 30, r: 30, b: 30 },
-          xaxis: { showgrid: false },
-          yaxis: { showgrid: true, gridcolor: "#ddd" },
-        },
-        { responsive: true, displayModeBar: false }
-      );
-  }
-
+  // --- CHART LOGEMENTS SOCIAUX (CORRIGÉ : DONUT 100%) ---
   function drawHousingChart() {
     kpiContainer.innerHTML = "";
 
+    // Si une seule zone : Donut Gauge (0 à 100%)
     if (zonesAComparer.size === 1) {
       const p = zonesAComparer.values().next().value;
-      const soc = p.nombre_sociaux || 0;
-      const tot = p.nombre_total || 0;
-      const rat = p.value || 0; // C'est notre % calculé
+      const rate = p.value || 0; // Ex: 20
+      const remainder = Math.max(0, 100 - rate); // Ex: 80
 
-      kpiContainer.innerHTML = `<div class="kpi-card"><div class="kpi-card-title">Social</div><div class="kpi-card-value" style="color:#88419d">${soc.toLocaleString()}</div></div><div class="kpi-card"><div class="kpi-card-title">Total</div><div class="kpi-card-value">${tot.toLocaleString()}</div></div><div class="kpi-card"><div class="kpi-card-title">Taux</div><div class="kpi-card-value" style="color:#88419d">${rat.toFixed(
+      // KPI
+      kpiContainer.innerHTML = `<div class="kpi-card"><div class="kpi-card-title">Social</div><div class="kpi-card-value" style="color:#88419d">${(
+        p.nombre_sociaux || 0
+      ).toLocaleString()}</div></div><div class="kpi-card"><div class="kpi-card-title">Total</div><div class="kpi-card-value">${(
+        p.nombre_total || 0
+      ).toLocaleString()}</div></div><div class="kpi-card"><div class="kpi-card-title">Taux</div><div class="kpi-card-value" style="color:#88419d">${rate.toFixed(
         1
       )}%</div></div>`;
+
+      // Graphique Jauge
       Plotly.newPlot(
         chartDiv,
         [
           {
-            values: [soc, Math.max(0, tot - soc)],
-            labels: ["Social", "Privé"],
+            values: [rate, remainder],
+            labels: ["Social", "Autre"],
             type: "pie",
             hole: 0.7,
-            marker: { colors: ["#88419d", "#e0e0e0"] },
+            marker: { colors: ["#88419d", "#e0e0e0"] }, // Violet pour le taux, gris pour le fond
             textinfo: "none",
-            hoverinfo: "label+value+percent",
-            sort: false,
+            hoverinfo: "label+value",
+            sort: false, // Important pour garder l'ordre
+            direction: "clockwise",
           },
         ],
         {
@@ -648,7 +876,7 @@ document.addEventListener("DOMContentLoaded", () => {
           margin: { t: 20, b: 20, l: 20, r: 20 },
           annotations: [
             {
-              text: `${rat.toFixed(1)}%`,
+              text: `${rate.toFixed(1)}%`,
               x: 0.5,
               y: 0.5,
               font: { size: 30, color: "#88419d", weight: "bold" },
@@ -658,21 +886,22 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         { responsive: true, displayModeBar: false }
       );
-    } else {
+    }
+    // Si comparaison : Barres classiques
+    else {
       const x = [],
         y = [],
         colors = [];
       let i = 0;
       zonesAComparer.forEach((p) => {
-        const rat = p.value || 0;
         x.push(p.l_ar.split(" ")[0]);
-        y.push(rat);
+        y.push(p.value || 0);
         colors.push(comparisonColors[i]);
         kpiContainer.innerHTML += `<div class="kpi-card"><div class="kpi-card-title">${
           p.l_ar.split(" ")[0]
         }</div><div class="kpi-card-value" style="color:${
           comparisonColors[i]
-        }">${rat.toFixed(1)}%</div></div>`;
+        }">${(p.value || 0).toFixed(1)}%</div></div>`;
         i++;
       });
       Plotly.newPlot(
@@ -700,9 +929,240 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // ============================================================
-  // 8. DRAGGABLE WINDOW
-  // ============================================================
+  function drawLandValueChart() {
+    kpiContainer.innerHTML = "";
+    const mapDataYear = dataCache
+      .get("land_value_map_by_year")
+      .get(currentYear);
+
+    zonesAComparer.forEach((p, id) => {
+      const freshData = mapDataYear ? mapDataYear.get(id) : null;
+      if (!freshData) return;
+      const color =
+        zonesAComparer.size === 1
+          ? kpiColors.immo
+          : zonesAComparer.keys().next().value === id
+          ? comparisonColors[0]
+          : comparisonColors[1];
+      let html = `<div class="kpi-card" style="border-top: 3px solid ${color}; grid-column: span 2;"><div class="kpi-card-title" style="color:${color}; font-weight:bold;">${
+        p.l_ar.split(" ")[0]
+      } (${currentYear})</div><div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; text-align:left; margin-top:5px;"><div><small>Prix m²</small><br><strong>${freshData.prix_m2.toLocaleString()} €</strong></div><div><small>Prix Moyen</small><br><strong>${(
+        freshData.prix_total / 1000
+      ).toFixed(
+        0
+      )} k€</strong></div><div><small>Surface</small><br><strong>${freshData.surface.toFixed(
+        1
+      )} m²</strong></div><div><small>Pièces</small><br><strong>${freshData.pieces.toFixed(
+        1
+      )}</strong></div></div></div>`;
+      kpiContainer.innerHTML += html;
+    });
+
+    const rawData = dataCache.get("land_value_raw");
+    const traces = [];
+    let idx = 0;
+
+    zonesAComparer.forEach((p, id) => {
+      const shortId = getShortId(p.c_arinsee);
+      const histData = rawData
+        .filter((d) => getShortId(d.arrondissement) === shortId)
+        .sort((a, b) => a.annee - b.annee);
+      const xVal = histData.map((d) => d.annee);
+      const yVal = histData.map((d) => parseFloat(d.prix_m2_moyen));
+      traces.push({
+        x: xVal,
+        y: yVal,
+        type: "scatter",
+        mode: "lines+markers",
+        name: p.l_ar.split(" ")[0],
+        line: {
+          color:
+            zonesAComparer.size === 1 ? kpiColors.immo : comparisonColors[idx],
+          width: 3,
+        },
+        marker: { size: 6 },
+      });
+      idx++;
+    });
+
+    Plotly.newPlot(
+      chartDiv,
+      traces,
+      {
+        title: "Évolution du Prix au m² (2020-2025)",
+        font: { size: 10 },
+        margin: { t: 40, l: 40, r: 20, b: 30 },
+        paper_bgcolor: "#f8f9fa",
+        plot_bgcolor: "#f8f9fa",
+        xaxis: { title: "Année" },
+        yaxis: { title: "€ / m²", showgrid: true, gridcolor: "#ddd" },
+        showlegend: true,
+        legend: { orientation: "h", y: -0.2 },
+      },
+      { responsive: true, displayModeBar: false }
+    );
+  }
+
+  function drawTreesChart() {
+    kpiContainer.innerHTML = "";
+    const x = [],
+      y = [],
+      colors = [];
+    let i = 0;
+    zonesAComparer.forEach((p) => {
+      x.push(p.l_ar.split(" ")[0]);
+      y.push(p.value);
+      colors.push(comparisonColors[i]);
+      kpiContainer.innerHTML += `<div class="kpi-card" style="border-left: 4px solid ${
+        comparisonColors[i]
+      }"><div class="kpi-card-title">${
+        p.l_ar.split(" ")[0]
+      }</div><div class="kpi-card-value" style="color:#28a745">${p.value.toLocaleString()}</div><div style="font-size:0.8rem; color:#666">Arbres</div></div>`;
+      i++;
+    });
+    if (zonesAComparer.size === 1) {
+      chartDiv.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column;"><h3 style="color:#555;">TOTAL ARBRES</h3><div style="font-size:4rem; font-weight:bold; color:#28a745">${y[0].toLocaleString()}</div></div>`;
+    } else {
+      Plotly.newPlot(
+        chartDiv,
+        [
+          {
+            x,
+            y,
+            type: "bar",
+            marker: { color: colors },
+            text: y.map((v) => v.toLocaleString()),
+            textposition: "auto",
+          },
+        ],
+        {
+          paper_bgcolor: "#f8f9fa",
+          plot_bgcolor: "#f8f9fa",
+          margin: { t: 30, l: 40, r: 30, b: 30 },
+          xaxis: { showgrid: false },
+          yaxis: { showgrid: true, gridcolor: "#ddd" },
+        },
+        { responsive: true, displayModeBar: false }
+      );
+    }
+  }
+
+  function drawTransportChart() {
+    const rawData = dataCache.get("transports_ratio_raw");
+    const typeFilter = transportTypeSelector.value;
+    kpiContainer.innerHTML = "";
+    const kpiTotals = { bus: 0, metro: 0, tram: 0, rail: 0 };
+    zonesAComparer.forEach((p) => {
+      const zId = getShortId(p.c_arinsee);
+      const zData = rawData.filter((d) => getShortId(d.arrondissement) === zId);
+      ["bus", "metro", "tram", "rail"].forEach((t) => {
+        const val =
+          zData.find((d) => d.type.toLowerCase() === t)
+            ?.nombre_arrets_par_type || 0;
+        kpiTotals[t] += val;
+      });
+    });
+    ["bus", "metro", "tram", "rail"].forEach((t) => {
+      const val = kpiTotals[t];
+      if (typeFilter === "total" || typeFilter === t) {
+        kpiContainer.innerHTML += `<div class="kpi-card" data-type="${t}"><div class="kpi-card-title">${t.toUpperCase()}</div><div class="kpi-card-value" style="color:${
+          kpiColors[t]
+        }">${val}</div></div>`;
+      }
+    });
+    const traces = [];
+    const types =
+      typeFilter === "total" ? ["bus", "metro", "tram", "rail"] : [typeFilter];
+    const typeColorsArray = [
+      kpiColors.bus,
+      kpiColors.metro,
+      kpiColors.tram,
+      kpiColors.rail,
+    ];
+    let zIdx = 0;
+    zonesAComparer.forEach((p) => {
+      const zId = getShortId(p.c_arinsee);
+      const zData = rawData.filter((d) => getShortId(d.arrondissement) === zId);
+      const yVals = types.map(
+        (t) =>
+          zData.find((d) => d.type.toLowerCase() === t)
+            ?.nombre_arrets_par_type || 0
+      );
+      let barColors =
+        zonesAComparer.size === 1 && typeFilter === "total"
+          ? typeColorsArray
+          : zonesAComparer.size === 1
+          ? kpiColors[typeFilter]
+          : comparisonColors[zIdx];
+      traces.push({
+        x: types.map((t) => t.toUpperCase()),
+        y: yVals,
+        name: p.l_ar.split(" ")[0],
+        type: "bar",
+        marker: { color: barColors },
+        text: yVals,
+        textposition: "auto",
+      });
+      zIdx++;
+    });
+    Plotly.newPlot(
+      chartDiv,
+      traces,
+      {
+        margin: { t: 30, l: 30, r: 30, b: 30 },
+        showlegend: zonesAComparer.size > 1,
+        paper_bgcolor: "#f8f9fa",
+        plot_bgcolor: "#f8f9fa",
+        xaxis: { showgrid: false },
+        yaxis: { showgrid: true, gridcolor: "#ddd" },
+      },
+      { responsive: true, displayModeBar: false }
+    );
+  }
+
+  function drawToiletsChart() {
+    kpiContainer.innerHTML = "";
+    const x = [],
+      y = [],
+      colors = [];
+    let i = 0;
+    zonesAComparer.forEach((p) => {
+      x.push(p.l_ar.split(" ")[0]);
+      y.push(p.value);
+      colors.push(comparisonColors[i]);
+      kpiContainer.innerHTML += `<div class="kpi-card"><div class="kpi-card-title">${
+        p.l_ar.split(" ")[0]
+      }</div><div class="kpi-card-value" style="color:${comparisonColors[i]}">${
+        p.value
+      }</div></div>`;
+      i++;
+    });
+    if (zonesAComparer.size === 1)
+      chartDiv.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column;"><h3 style="color:#555;">TOTAL</h3><div style="font-size:5rem; font-weight:bold; color:#225ea8">${y[0]}</div></div>`;
+    else
+      Plotly.newPlot(
+        chartDiv,
+        [
+          {
+            x,
+            y,
+            type: "bar",
+            marker: { color: colors },
+            text: y,
+            textposition: "auto",
+          },
+        ],
+        {
+          paper_bgcolor: "#f8f9fa",
+          plot_bgcolor: "#f8f9fa",
+          margin: { t: 30, l: 30, r: 30, b: 30 },
+          xaxis: { showgrid: false },
+          yaxis: { showgrid: true, gridcolor: "#ddd" },
+        },
+        { responsive: true, displayModeBar: false }
+      );
+  }
+
   const d = document.getElementById("graph-window");
   const h = document.querySelector(".window-header");
   let x = 0,

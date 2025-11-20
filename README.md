@@ -10,7 +10,7 @@ bash install.sh
 
 ### 🏁 Results
 
-This will launch the API and start the filtering and aggregation pipeline.
+This will launch the API, the dashbaord and start the filtering and aggregation pipeline.
 
 ### Reload the project
 
@@ -87,3 +87,15 @@ Ensure you have the following structure and files in place:
 Running the script will produce the following outputs:
 
 - Tables will be created in the API's MySQL storage like gold_table_name.
+
+### Launching the Dashbaord
+
+### 📋 Prerequisites
+
+Ensure you have node install:
+
+```bash
+    cd dashboard-frontend
+    npm install
+    npm start
+```

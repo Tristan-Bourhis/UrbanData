@@ -1,79 +1,103 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>URBAN DATA EXPLORER</title>
-    
-    <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
 
+    <link
+      href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
     <div class="wrapper">
-        
-        <header class="app-header">
-            <h1 class="project-title">URBAN DATA EXPLORER</h1>
-            <section class="controls">
-                <div class="control-group">
-                    <label for="dataset-selector">Indicateur :</label>
-                    <select id="dataset-selector">
-                        <option value="none" selected>Aucun indicateur</option>
-                        <option value="arrets_count">Nombre d'arrêts</option>
-                        <option value="toilettes_count">Nombre de toilettes</option>
-                        <option value="logements_sociaux_ratio">Logements sociaux</option>
-                    </select>
-                </div>
-            </section>
-        </header>
+      <header class="app-header">
+        <h1 class="project-title">URBAN DATA EXPLORER</h1>
 
-        <main class="map-container">
-            <div id="map"></div>
-        </main>
+        <section class="controls">
+          <div class="control-group">
+            <label for="dataset-selector">Indicateur :</label>
+            <select id="dataset-selector">
+              <option value="none" selected>Aucun indicateur</option>
+              <option value="arrets_count">Nombre d'arrêts</option>
+              <option value="toilettes_count">Nombre de toilettes</option>
+              <option value="arbres_count">Nombre d'arbres</option>
+              <option value="logements_sociaux_ratio">Logements sociaux</option>
+              <option value="valeur_fonciere">Valeur Foncière (Immo)</option>
+            </select>
+          </div>
 
-        <div id="graph-window" class="floating-window">
-            
-            <div class="window-header">
-                <h2 id="chart-title">Analyse de la Zone</h2>
-            </div>
-            
-            <section class="analysis">
-                
-                <div class="control-group" id="transport-filter-group" style="display: none;">
-                    <label for="transport-type-selector">Type de transport :</label>
-                    <select id="transport-type-selector">
-                        <option value="total" selected>Total</option>
-                        <option value="bus">Bus</option>
-                        <option value="metro">Métro</option>
-                        <option value="tram">Tram</option>
-                        <option value="rail">Train (RER)</option>
-                    </select>
-                </div>
-                
-                <div id="kpi-container">
-                    </div>
-                
-                <div id="timeline-chart">
-                    <p>Sélectionnez un indicateur et cliquez sur un arrondissement.</p>
-                </div>
-            </section>
+          <div
+            class="control-group"
+            id="year-slider-group"
+            style="display: none"
+          >
+            <label for="year-slider"
+              >Année :
+              <span id="year-display" style="font-weight: 800; color: #d63384"
+                >2025</span
+              ></label
+            >
+            <input
+              type="range"
+              id="year-slider"
+              min="2020"
+              max="2025"
+              step="1"
+              value="2025"
+              style="width: 150px; cursor: pointer"
+            />
+          </div>
+        </section>
+      </header>
 
-            <div id="map-legend" class="legend-container" style="display:none;">
-                <div class="legend-title">Échelle (Densité)</div>
-                <div class="legend-bar"></div> <div class="legend-labels">
-                    <span id="legend-min">0</span>
-                    <span id="legend-max">100+</span>
-                </div>
-            </div>
+      <main class="map-container">
+        <div id="map"></div>
+      </main>
 
+      <div id="graph-window" class="floating-window">
+        <div class="window-header">
+          <h2 id="chart-title">Analyse de la Zone</h2>
         </div>
-        
+
+        <section class="analysis">
+          <div
+            class="control-group"
+            id="transport-filter-group"
+            style="display: none"
+          >
+            <label for="transport-type-selector">Type de transport :</label>
+            <select id="transport-type-selector">
+              <option value="total" selected>Total</option>
+              <option value="bus">Bus</option>
+              <option value="metro">Métro</option>
+              <option value="tram">Tram</option>
+              <option value="rail">Train (RER)</option>
+            </select>
+          </div>
+
+          <div id="kpi-container"></div>
+
+          <div id="timeline-chart">
+            <p>Sélectionnez un indicateur et cliquez sur un arrondissement.</p>
+          </div>
+        </section>
+
+        <div id="map-legend" class="legend-container" style="display: none">
+          <div class="legend-title">Échelle (Densité)</div>
+          <div class="legend-bar"></div>
+          <div class="legend-labels">
+            <span id="legend-min">0</span>
+            <span id="legend-max">100+</span>
+          </div>
+        </div>
+      </div>
     </div>
-        
-    </div> 
+
     <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
     <script src="https://cdn.plot.ly/plotly-basic-latest.min.js"></script>
-    <script src="js/app.js?v=3"></script>
-
-</body>
+    <script src="js/app.js?v=4"></script>
+  </body>
 </html>

@@ -38,7 +38,7 @@ def transport_agregation():
             cursor.execute(create_query_1)
             # print("-> Table 'gold_nombre_arrets_par_arrondissement' créée avec succès.")
 
-            # --- Indicateur 2: Ratio des types de transport par arrondissement ---
+            # --- Indicateur 2: Ratio des types de transport par arrondissement (avec coordonnées) ---
             drop_query_2 = "DROP TABLE IF EXISTS gold_ratio_types_transports_par_arrondissement;"
             create_query_2 = """
             CREATE TABLE gold_ratio_types_transports_par_arrondissement AS
@@ -47,8 +47,6 @@ def transport_agregation():
                 type,
                 COUNT(*) AS nombre_arrets_par_type,
                 SUM(COUNT(*)) OVER (PARTITION BY arrondissement) AS total_arrets_arrondissement,
-                
-                -- Calcule le ratio en pourcentage (ex: (10 / 50) * 100)
                 (COUNT(*) * 100.0) / SUM(COUNT(*)) OVER (PARTITION BY arrondissement) AS pourcentage_du_total
             FROM
                 silver_transport
@@ -57,9 +55,26 @@ def transport_agregation():
             ORDER BY
                 arrondissement, pourcentage_du_total DESC;
             """
+            
+            # --- Indicateur 2b: Table détail avec coordonnées (pour affichage des points) ---
+            drop_query_2b = "DROP TABLE IF EXISTS gold_points_transports_par_arrondissement;"
+            create_query_2b = """
+            CREATE TABLE gold_points_transports_par_arrondissement AS
+            SELECT
+                arrondissement,
+                type,
+                nom,
+                geo_point_2d
+            FROM
+                silver_transport;
+            """
             cursor.execute(drop_query_2)
             cursor.execute(create_query_2)
             # print("-> Table 'gold_ratio_types_transports_par_arrondissement' créée avec succès.")
+            
+            cursor.execute(drop_query_2b)
+            cursor.execute(create_query_2b)
+            # print("-> Table 'gold_points_transports_par_arrondissement' créée avec succès.")
 
             # Valider les deux créations de table
             connection.commit()

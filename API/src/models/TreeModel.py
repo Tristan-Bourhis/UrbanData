@@ -12,3 +12,16 @@ def getTreeModel():
         return myresult
     except Exception as e:
         return jsonify(error=str(e)), 400
+    
+
+def getTreeNumberModel():
+    try:
+        mydb = get_db_connection()
+        mycursor = mydb.cursor(dictionary=True, buffered=True)
+        mycursor.execute("SELECT arrondissement, count(*) as nombre_arbre FROM gold_tree GROUP BY arrondissement;")
+        myresult = mycursor.fetchall()
+        mycursor.close()
+        mydb.close()
+        return myresult
+    except Exception as e:
+        return jsonify(error=str(e)), 400

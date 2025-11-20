@@ -2,7 +2,6 @@
 set -e 
 
 cd API
-pip install -r requirements.txt
 docker compose up --build -d
 echo "API lauched"
 
@@ -18,7 +17,7 @@ cd ../../dashboard-frontend
 npm install
 
 (
-    URL="https://localhost:3443/"
+    URL="http://localhost:3443/"
 
     open_url() {
         browser="$1"

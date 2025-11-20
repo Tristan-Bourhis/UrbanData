@@ -63,6 +63,7 @@ def check_api_key():
         '/api/get-type-ratio-station': 'get-token',
         '/api/get-stations-points': 'get-token',
         '/api/get-tree': 'get-token',
+        '/api/get-tree-number': 'get-token',
         '/api/get-land-value': 'get-token',
     }
 

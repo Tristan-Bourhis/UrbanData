@@ -7,6 +7,7 @@ from controllers.TransportController import getNumberStationByAController
 from controllers.TransportController import getRatioTypeStationByAController
 from controllers.TransportController import getStationsPointsController
 from controllers.TreeController import getTreeController
+from controllers.TreeController import getTreeNumberController
 from controllers.LandValueContoller import getLandValueModelController
 from extension import limiter
 
@@ -51,6 +52,11 @@ def get_stations_points():
 @limiter.limit("20 per minute")
 def get_tree():
     return getTreeController()
+
+@reorderBlueprint.route('/get-tree-number', methods=['GET'])
+@limiter.limit("20 per minute")
+def get_tree_number():
+    return getTreeNumberController()
 
 @reorderBlueprint.route('/get-land-value', methods=['GET'])
 @limiter.limit("20 per minute")

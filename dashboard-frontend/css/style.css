@@ -4,17 +4,19 @@
 
 /* Réinitialise les marges et le box-model pour tous les éléments */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 /* Configuration de la page : plein écran, sans défilement global, police système */
-html, body {
-    height: 100vh;
-    width: 100vw;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    overflow: hidden; /* Empêche le scroll de la page entière (seuls les composants scrollent) */
+html,
+body {
+  height: 100vh;
+  width: 100vw;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  overflow: hidden; /* Empêche le scroll de la page entière (seuls les composants scrollent) */
 }
 
 /* =========================================
@@ -23,19 +25,20 @@ html, body {
 
 /* Conteneur global */
 .wrapper {
-    position: relative; 
-    width: 100%;
-    height: 100%;
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 /* La carte occupe tout l'arrière-plan */
-.map-container, #map {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1; /* Niveau le plus bas */
+.map-container,
+#map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* Niveau le plus bas */
 }
 
 /* =========================================
@@ -44,29 +47,29 @@ html, body {
 
 /* Le bandeau blanc avec le titre et le menu principal */
 .app-header {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%); /* Centrage horizontal parfait */
-    width: auto;
-    z-index: 1000; /* Au-dessus de tout */
-    
-    background-color: #ffffff;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
-    border-radius: 12px;
-    padding: 18px 35px; 
-    
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 35px;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%); /* Centrage horizontal parfait */
+  width: auto;
+  z-index: 1000; /* Au-dessus de tout */
+
+  background-color: #ffffff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 18px 35px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 35px;
 }
 
 .project-title {
-    font-size: 1.7rem;
-    font-weight: 700;
-    color: #222;
-    white-space: nowrap; 
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #222;
+  white-space: nowrap;
 }
 
 /* =========================================
@@ -74,57 +77,57 @@ html, body {
    ========================================= */
 
 .controls {
-    display: flex;
-    align-items: center;
-    gap: 25px;
+  display: flex;
+  align-items: center;
+  gap: 25px;
 }
 
 .control-group {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .control-group label {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #555;
-    white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
 }
 
 /* Style personnalisé pour les menus déroulants */
 .control-group select {
-    /* Supprime le style par défaut du navigateur */
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    
-    background-color: #f4f7f6;
-    border: 1px solid #dadedc;
-    border-radius: 8px;
-    padding: 10px 36px 10px 14px;
-    font-size: 1rem;
-    font-weight: 500;
-    color: #333;
-    cursor: pointer;
-    
-    /* Ajout d'une petite flèche SVG personnalisée */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23555' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px 16px;
-    
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  /* Supprime le style par défaut du navigateur */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  background-color: #f4f7f6;
+  border: 1px solid #dadedc;
+  border-radius: 8px;
+  padding: 10px 36px 10px 14px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+
+  /* Ajout d'une petite flèche SVG personnalisée */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23555' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
+
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .control-group select:hover {
-    background-color: #e9ecef;
+  background-color: #e9ecef;
 }
 
 .control-group select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0,123,255,.25);
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 
 /* =========================================
@@ -133,84 +136,84 @@ html, body {
 
 /* Le conteneur principal déplaçable */
 .floating-window {
-    position: absolute;
-    z-index: 999; /* Entre la carte et le header */
-    
-    /* Position initiale */
-    top: 120px;
-    left: 30px;
-    width: 33vw; 
-    height: 70vh; 
-    
-    /* Contraintes de taille */
-    min-width: 450px;
-    min-height: 450px;
-    
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    
-    /* Permet le redimensionnement par l'utilisateur */
-    resize: both;
-    overflow: hidden; 
-    
-    /* Organisation interne en colonne (Header -> Contenu -> Légende) */
-    display: flex;
-    flex-direction: column;
+  position: absolute;
+  z-index: 999; /* Entre la carte et le header */
+
+  /* Position initiale */
+  top: 120px;
+  left: 30px;
+  width: 33vw;
+  height: 70vh;
+
+  /* Contraintes de taille */
+  min-width: 450px;
+  min-height: 450px;
+
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  /* Permet le redimensionnement par l'utilisateur */
+  resize: both;
+  overflow: hidden;
+
+  /* Organisation interne en colonne (Header -> Contenu -> Légende) */
+  display: flex;
+  flex-direction: column;
 }
 
 /* La barre grise en haut de la fenêtre (zone de "drag") */
 .window-header {
-    padding: 10px 15px;
-    background-color: #f1f1f1;
-    border-bottom: 1px solid #ddd;
-    cursor: move; /* Curseur en croix */
+  padding: 10px 15px;
+  background-color: #f1f1f1;
+  border-bottom: 1px solid #ddd;
+  cursor: move; /* Curseur en croix */
 }
 
 .window-header h2 {
-    font-size: 1.1rem;
-    color: #333;
-    margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+  margin: 0;
 }
 
 /* Zone centrale scrollable contenant les graphiques */
 .analysis {
-    padding: 20px;
-    padding-bottom: 10px;
-    flex-grow: 1; /* Prend tout l'espace disponible restant */
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    gap: 20px; 
-    overflow-y: auto; /* Active le scroll si la fenêtre est trop petite */
+  padding: 20px;
+  padding-bottom: 10px;
+  flex-grow: 1; /* Prend tout l'espace disponible restant */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 20px;
+  overflow-y: auto; /* Active le scroll si la fenêtre est trop petite */
 }
 
 /* Filtre spécifique "Type de transport" à l'intérieur de la fenêtre */
 #transport-filter-group {
-    border-bottom: 1px solid #eee;
-    padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
 }
 
 #transport-filter-group label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #555;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555;
 }
 
 #transport-filter-group select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 8px 30px 8px 10px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23555' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 14px 14px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px 30px 8px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23555' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px 14px;
 }
 
 /* =========================================
@@ -218,63 +221,71 @@ html, body {
    ========================================= */
 
 #kpi-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* 2 colonnes égales */
-    gap: 15px;
-    flex-shrink: 0; /* Empêche les KPI de s'écraser quand on réduit la fenêtre */
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2 colonnes égales */
+  gap: 15px;
+  flex-shrink: 0; /* Empêche les KPI de s'écraser quand on réduit la fenêtre */
 }
 
 .kpi-card {
-    background-color: #f8f9fa;
-    border-radius: 12px;
-    padding: 15px;
-    text-align: center;
-    border: 1px solid #eee; 
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  border: 1px solid #eee;
 }
 
 .kpi-card-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #777;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #777;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .kpi-card-value {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: #333;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #333;
 }
 
 /* Couleurs spécifiques par mode de transport */
-.kpi-card[data-type="bus"] .kpi-card-value { color: #007bff; }   /* Bleu */
-.kpi-card[data-type="metro"] .kpi-card-value { color: #8a2be2; } /* Violet */
-.kpi-card[data-type="tram"] .kpi-card-value { color: #20c997; }  /* Vert */
-.kpi-card[data-type="rail"] .kpi-card-value { color: #fd7e14; }  /* Orange */
+.kpi-card[data-type="bus"] .kpi-card-value {
+  color: #007bff;
+} /* Bleu */
+.kpi-card[data-type="metro"] .kpi-card-value {
+  color: #8a2be2;
+} /* Violet */
+.kpi-card[data-type="tram"] .kpi-card-value {
+  color: #20c997;
+} /* Vert */
+.kpi-card[data-type="rail"] .kpi-card-value {
+  color: #fd7e14;
+} /* Orange */
 
 /* =========================================
    7. GRAPHIQUE (PLOTLY)
    ========================================= */
 
 #timeline-chart {
-    width: 100%;
-    flex-grow: 1; /* Prend l'espace vertical restant */
-    min-height: 250px; /* Hauteur minimale garantie */
-    background-color: #f8f9fa;
-    border-radius: 12px;
-    padding: 10px;
-    position: relative;
-    border: 1px solid #eee;
-    display: block; 
+  width: 100%;
+  flex-grow: 1; /* Prend l'espace vertical restant */
+  min-height: 250px; /* Hauteur minimale garantie */
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 10px;
+  position: relative;
+  border: 1px solid #eee;
+  display: block;
 }
 
 /* Texte "Sélectionnez un indicateur..." */
 #timeline-chart p {
-    color: #888;
-    font-style: italic;
-    text-align: center;
-    padding-top: 80px; 
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding-top: 80px;
 }
 
 /* =========================================
@@ -282,33 +293,73 @@ html, body {
    ========================================= */
 
 .legend-container {
-    padding: 15px 20px;
-    background-color: #fcfcfc;
-    border-top: 1px solid #e0e0e0;
-    flex-shrink: 0; /* Fixe la hauteur, ne s'écrase pas */
+  padding: 15px 20px;
+  background-color: #fcfcfc;
+  border-top: 1px solid #e0e0e0;
+  flex-shrink: 0; /* Fixe la hauteur, ne s'écrase pas */
 }
 
 .legend-title {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #666;
-    margin-bottom: 8px;
-    text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
 .legend-bar {
-    height: 12px;
-    width: 100%;
-    border-radius: 6px;
-    background: #ccc; /* Sera écrasé par le JS (dégradé dynamique) */
-    margin-bottom: 5px;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  height: 12px;
+  width: 100%;
+  border-radius: 6px;
+  background: #ccc; /* Sera écrasé par le JS (dégradé dynamique) */
+  margin-bottom: 5px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .legend-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    color: #555;
-    font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #555;
+  font-weight: 500;
+}
+
+/* =========================================
+   MARQUEURS DE TRANSPORT
+   ========================================= */
+
+.transport-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  transition: transform 0.2s ease;
+}
+
+.transport-marker:hover {
+  transform: scale(1.3);
+}
+
+.transport-marker-bus {
+  background-color: #007bff;
+}
+
+.transport-marker-metro {
+  background-color: #8a2be2;
+}
+
+.transport-marker-tram {
+  background-color: #20c997;
+}
+
+.transport-marker-rail {
+  background-color: #fd7e14;
 }

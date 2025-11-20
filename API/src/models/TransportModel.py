@@ -18,7 +18,7 @@ def getRatioTypeStationByAModel():
     try:
         mydb = get_db_connection()
         mycursor = mydb.cursor(dictionary=True, buffered=True)
-        mycursor.execute("SELECT arrondissement, type, nombre_arrets_par_type, pourcentage_du_total FROM gold_ratio_types_transports_par_arrondissement;")
+        mycursor.execute("SELECT * FROM gold_ratio_types_transports_par_arrondissement;")
         myresult = mycursor.fetchall()
         mycursor.close()
         mydb.close()
@@ -30,7 +30,15 @@ def getStationspointsModel():
     try:
         mydb = get_db_connection()
         mycursor = mydb.cursor(dictionary=True, buffered=True)
-        mycursor.execute("SELECT type, nom, geo_point_2d FROM silver_transport;")
+        mycursor.execute("""
+            SELECT 
+                arrondissement,
+                type, 
+                nom, 
+                geo_point_2d 
+            FROM silver_transport
+            ORDER BY arrondissement, type, nom;
+        """)
         myresult = mycursor.fetchall()
         mycursor.close()
         mydb.close()
