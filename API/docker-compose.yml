@@ -15,6 +15,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
     volumes:
       - ./:/app
 
@@ -64,8 +66,46 @@ services:
     depends_on:
       - db
 
+  mongo:
+    image: mongo:7
+    container_name: mongo_logs
+    restart: always
+    networks:
+      - app_net
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-root}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo_express
+    restart: always
+    networks:
+      - app_net
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER:-root}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-root}
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin}
+    depends_on:
+      mongo:
+        condition: service_healthy
+
 volumes:
   mysql_data:
+  mongo_data:
 
 networks:
   app_net:

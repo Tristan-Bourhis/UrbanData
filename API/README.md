@@ -52,6 +52,14 @@ VALUES
    MYSQL_USER=flaskuser
    MYSQL_PASSWORD=flaskpass
    SECRET_KEY=random_long_stable_string
+
+   # MongoDB (API logs) — optional, defaults shown
+   MONGO_USER=root
+   MONGO_PASSWORD=root
+   MONGO_DB=urbandata_logs
+   LOG_TTL_DAYS=30
+   MONGO_EXPRESS_USER=admin
+   MONGO_EXPRESS_PASSWORD=admin
    ```
 
 2. **Create a SSL certificate (optionnal + you must have to update this : app.run(host="0.0.0.0", port=5000, debug=True))**
@@ -72,6 +80,8 @@ This will start:
 - Flask API → [http://localhost:5000](http://localhost:5000)
 - phpMyAdmin → [http://localhost:8080](http://localhost:8080)
 - MySQL database → accessible internally as `db:3306`
+- MongoDB (API logs) → accessible internally as `mongo:27017`
+- mongo-express (logs viewer) → [http://localhost:8081](http://localhost:8081)
 
 4. **Generate your API token**
 
@@ -83,8 +93,8 @@ This will start:
 
    ! Comment the csrf = CSRFProtect(app) in the app.py for testing the API in Postman or anything else!
    You can also use Postman with the assets/Flask API Efrei.postman_collection.json
+   or open the Bruno collection in `API/bruno/` (includes a `Get API Logs` request hitting `/api/get-logs`).
    ! For POST and PUT methods, you have to put a X-CSRFToken and Referer header !
-
    - Test route:
 
      ```bash
@@ -97,3 +107,47 @@ This will start:
    ```bash
    docker compose down -v
    ```
+
+## 🗃️ API Logs (MongoDB)
+
+Every HTTP request is logged to a **MongoDB** NoSQL database (document store),
+which fits log data well: schemaless documents, fast time-ordered queries, and
+automatic expiry.
+
+### How it works
+
+- `src/mongo.py` — lazy, process-wide `MongoClient` and the `api_logs` collection (with indexes + a TTL index controlled by `LOG_TTL_DAYS`).
+- `src/request_logger.py` — `before_request`/`after_request` hooks that write **one document per request**. Logging is best-effort: a MongoDB outage never breaks an API response.
+
+Each log document looks like:
+
+```json
+{
+  "timestamp": "2026-05-26T20:40:00.000Z",
+  "method": "GET",
+  "path": "/api/get-tree",
+  "query_string": "a=1",
+  "status_code": 200,
+  "duration_ms": 12.34,
+  "remote_addr": "172.18.0.1",
+  "user_agent": "curl/8.0",
+  "api_key_present": true,
+  "user_id": 1,
+  "username": "admin",
+  "content_length": 512
+}
+```
+
+> The raw API key is **never** stored — only whether one was present and the
+> resolved username/role.
+
+### Reading the logs
+
+- **Web UI:** open mongo-express at [http://localhost:8081](http://localhost:8081) → database `urbandata_logs` → collection `api_logs`.
+- **API (admin only):** `GET /api/get-logs` returns the most recent logs as JSON.
+
+  ```bash
+  curl -H "X-API-KEY: APIKEY-ADMIN-12345" "http://localhost:5000/api/get-logs?limit=50"
+  ```
+
+  Optional query params: `limit` (default 100), `status` (HTTP code), `path`.

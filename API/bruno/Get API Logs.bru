@@ -1,0 +1,21 @@
+meta {
+  name: Get API Logs
+  type: http
+  seq: 11
+}
+
+get {
+  url: http://127.0.0.1:5000/api/get-logs?limit=100
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 100
+  ~status: 200
+  ~path: /api/get-tree
+}
+
+headers {
+  X-API-KEY: APIKEY-ADMIN-12345
+}

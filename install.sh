@@ -1,5 +1,8 @@
 #!/bin/bash
-set -e 
+set -e
+
+echo "Installing host Python deps for transform pipelines"
+pip install -r transform/requirements.txt
 
 cd API
 docker compose up --build -d

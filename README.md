@@ -4,6 +4,14 @@
 
 ### First install
 
+Install the Python dependencies used by the host-side transform pipelines:
+
+```bash
+pip install -r transform/requirements.txt
+```
+
+Then run:
+
 ```bash
 bash install.sh
 ```

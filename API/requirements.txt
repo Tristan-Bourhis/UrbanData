@@ -2,6 +2,7 @@ flask
 flask-mysqldb
 python-dotenv
 mysql-connector-python
+pymongo
 flask_cors
 Flask-WTF
 Flask-Limiter[redis]

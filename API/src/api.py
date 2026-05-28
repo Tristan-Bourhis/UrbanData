@@ -1,11 +1,12 @@
 import os
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, g
 from flask_cors import CORS
 from routes.reorderRoutes import reorderBlueprint
 from flask_wtf import CSRFProtect
 from dotenv import load_dotenv
 from bd import get_db_connection
 from extension import limiter
+from request_logger import init_request_logging
 
 load_dotenv()
 app = Flask(__name__)
@@ -25,6 +26,7 @@ CORS(app,
 
 limiter.init_app(app)
 csrf = CSRFProtect(app)
+init_request_logging(app)
 app.register_blueprint(reorderBlueprint, url_prefix='/api')
 
 @app.errorhandler(404)
@@ -47,14 +49,16 @@ def check_api_key():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
 
-    cursor.execute("SELECT id, username, permissions FROM api_key_user WHERE api_key = %s", (api_key,))
+    cursor.execute("SELECT id, username, role, permissions FROM api_key_user WHERE api_key = %s", (api_key,))
     user = cursor.fetchone()
 
     if not user:
         cursor.close()
         conn.close()
         return jsonify({"error": "Invalid API key"}), 403
-    
+
+    g.log_user = {"id": user["id"], "username": user["username"], "role": user["role"]}
+
     route_perm_map = {
         '/api/get-token': 'get-token',
         '/api/get-toilet-by-a': 'get-token',

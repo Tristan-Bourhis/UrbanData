@@ -9,6 +9,7 @@ from controllers.TransportController import getStationsPointsController
 from controllers.TreeController import getTreeController
 from controllers.TreeController import getTreeNumberController
 from controllers.LandValueContoller import getLandValueModelController
+from controllers.LogController import getApiLogsController
 from extension import limiter
 
 reorderBlueprint = Blueprint('reorder', __name__)
@@ -62,3 +63,8 @@ def get_tree_number():
 @limiter.limit("20 per minute")
 def get_land_value():
     return getLandValueModelController()
+
+@reorderBlueprint.route('/get-logs', methods=['GET'])
+@limiter.limit("20 per minute")
+def get_logs():
+    return getApiLogsController()
